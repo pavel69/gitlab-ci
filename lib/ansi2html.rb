@@ -90,7 +90,7 @@ module Ansi2html
 
       s = StringScanner.new(ansi.gsub("<", "&lt;"))
       while(!s.eos?)
-        if s.scan(/\e([@-_])(.*?)([@-~])/)
+        if s.scan(/[\e\^]([@-_])(.*?)([@-~])/)
           handle_sequence(s)
         else
           @out << s.scan(/./m)
