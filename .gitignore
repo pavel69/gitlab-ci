@@ -13,3 +13,7 @@ tmp/*
 .rvmrc
 coverage/*
 .ruby-version
+<<<<<<< HEAD
+.secret
+/vendor
+.DS_Store

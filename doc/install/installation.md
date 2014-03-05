@@ -92,11 +92,11 @@ You can use either MySQL or PostgreSQL.
 
     cd /home/gitlab_ci/
 
-    sudo -u gitlab_ci -H git clone https://github.com/gitlabhq/gitlab-ci.git
+    sudo -u gitlab_ci -H git clone https://gitlab.com/gitlab-org/gitlab-ci.git
 
     cd gitlab-ci
 
-    sudo -u gitlab_ci -H git checkout 4-1-stable
+    sudo -u gitlab_ci -H git checkout 4-2-stable
 
 ## 6. Setup application
 
@@ -185,9 +185,9 @@ Make sure to edit the config file to match your setup:
 
     sudo nginx -t
 
-## Reload configuration
+## Start nginx
 
-    sudo /etc/init.d/nginx reload
+    sudo /etc/init.d/nginx start
 
 
 
@@ -195,7 +195,7 @@ Make sure to edit the config file to match your setup:
 
 
 Now you need Runners to process your builds.
-Checkout [runner repository](https://github.com/gitlabhq/gitlab-ci-runner#installation) for setup info.
+Checkout [runner repository](https://gitlab.com/gitlab-org/gitlab-ci-runner/blob/master/README.md) for setup info.
 
 # Done!
 
@@ -214,7 +214,7 @@ You should use your GitLab credentials in order to login
 If you want to use SMTP do next:
 
     # Copy config file
-    sudo -u gitlab_ci -H cp config/initializers/smtp_settings.rb.example config/initializers/smtp_settings.rb
+    sudo -u gitlab_ci -H cp config/initializers/smtp_settings.rb.sample config/initializers/smtp_settings.rb
 
     # Edit it with your settings
     sudo -u gitlab_ci -H editor config/initializers/smtp_settings.rb

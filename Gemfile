@@ -56,15 +56,17 @@ gem 'grape-entity'
 gem 'rake'
 gem 'foreman'
 gem 'jquery-rails'
-gem 'gitlab_ci_meta'
+gem 'gitlab_ci_meta', '~> 4.0'
 
 gem 'sass-rails',   '~> 4.0.0'
 gem 'coffee-rails', '~> 4.0.0'
 
 gem 'uglifier', '>= 1.0.3'
 gem "therubyracer"
-gem 'bootstrap-sass', '~> 2.3.2'
+gem 'bootstrap-sass', '~> 3.0'
 gem "font-awesome-sass-rails", '~> 3.0.2'
+gem 'turbolinks'
+gem 'jquery-turbolinks'
 
 
 group :development do

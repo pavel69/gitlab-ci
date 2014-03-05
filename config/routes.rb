@@ -15,10 +15,11 @@ GitlabCi::Application.routes.draw do
 
     member do
       get :status, to: 'projects#badge'
-      get :charts
       get :integration
       post :build
     end
+
+    resource :charts, only: [:show]
 
     resources :builds, only: [:show] do
       member do

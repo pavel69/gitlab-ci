@@ -1,6 +1,6 @@
 class ProjectsController < ApplicationController
   before_filter :authenticate_user!, except: [:build, :badge, :index, :show]
-  before_filter :project, only: [:build, :integration, :show, :badge, :edit, :update, :destroy, :charts]
+  before_filter :project, only: [:build, :integration, :show, :badge, :edit, :update, :destroy]
   before_filter :authorize_access_project!, except: [:build, :gitlab, :badge, :index, :show, :new, :create]
   before_filter :authenticate_token!, only: [:build]
   before_filter :no_cache, only: [:badge]
@@ -8,7 +8,7 @@ class ProjectsController < ApplicationController
   layout 'project', except: [:index, :gitlab]
 
   def index
-    @projects = Project.public.page(params[:page]) unless current_user
+    @projects = Project.public_only.page(params[:page]) unless current_user
   end
 
   def gitlab
@@ -45,22 +45,7 @@ class ProjectsController < ApplicationController
   end
 
   def create
-    @project = Project.parse(params[:project])
-
-    Project.transaction do
-      @project.save!
-
-      opts = {
-        token: @project.token,
-        project_url: project_url(@project),
-      }
-
-      if Network.new.enable_ci(current_user.url, @project.gitlab_id, opts, current_user.private_token)
-        true
-      else
-        raise ActiveRecord::Rollback
-      end
-    end
+    @project = CreateProjectService.new.execute(current_user, params[:project], project_url(":project_id"))
 
     if @project.persisted?
       redirect_to project_path(@project, show_guide: true), notice: 'Project was successfully created.'
@@ -88,40 +73,24 @@ class ProjectsController < ApplicationController
   end
 
   def build
-   # Ignore remove branch push
-   return head(200) if params[:after] =~ /^00000000/ or (not params[:ref].include?('master'))
+    # Ignore remove branch push
+    return head(200) if (not params[:ref].include?('master'))
 
-   build_params = params.dup
-   @build = @project.register_build(build_params)
+    @build = CreateBuildService.new.execute(@project, params.dup)
 
-   if @build
-     head 200
-   else
-     head 500
-   end
-  rescue
-    head 500
+    if @build.persisted?
+      head 201
+    else
+      head 400
+    end
   end
 
   # Project status badge
   # Image with build status for sha or ref
   def badge
-    image_name = if params[:sha]
-                   @project.sha_status_image(params[:sha])
-                 elsif params[:ref]
-                   @project.status_image(params[:ref])
-                 else
-                   'unknown.png'
-                 end
+    image = ImageForBuildService.new.execute(@project, params)
 
-    send_file Rails.root.join('public', image_name), filename: image_name, disposition: 'inline'
-  end
-
-  def charts
-    @charts = {}
-    @charts[:week] = Charts::WeekChart.new(@project)
-    @charts[:month] = Charts::MonthChart.new(@project)
-    @charts[:year] = Charts::YearChart.new(@project)
+    send_file image.path, filename: image.name, disposition: 'inline'
   end
 
   protected

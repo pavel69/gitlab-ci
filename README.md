@@ -5,7 +5,7 @@
 * [![Dependency Status](https://gemnasium.com/gitlabhq/gitlab-ci.png)](https://gemnasium.com/gitlabhq/gitlab-ci)
 * [![Coverage Status](https://coveralls.io/repos/gitlabhq/gitlab-ci/badge.png?branch=master)](https://coveralls.io/r/gitlabhq/gitlab-ci)
 
-![Screen](https://raw.github.com/gitlabhq/gitlab-ci/master/public/gitlab-ci-screenshot.png)
+![Screen](https://gitlab.com/gitlab-org/gitlab-ci/raw/master/public/gitlab-ci-screenshot.png)
 
 ### Requirements
 
@@ -42,11 +42,13 @@ The following features are not in GitLab CI but merge requests are very welcome:
 * Build artifacts access
 * Build pipeline / build promotion actions
 
+To support parallel builds and deployments there is a [blog article with a roadmap](http://blog.gitlab.org/gitlab-ci-with-parallel-builds-and-deployments/).
+
 ### Runners
 
 To perform the actual build you need a CI runner (also see the Architecture section below):
 
-* [Official CI runner for Linux](https://github.com/gitlabhq/gitlab-ci-runner)
+* [Official CI runner for Linux](https://gitlab.com/gitlab-org/gitlab-ci-runner)
 * [Unofficial CI runner for Windows](https://github.com/virtualmarc/gitlab-ci-runner-win)
 * [Unofficial CI runner for Scala/Java](https://github.com/nafg/gitlab-ci-runner-scala)
 
@@ -68,7 +70,7 @@ Possible Cases:
 * 1 __GitLab CI__ and N __GitLab CI Runner__ instances on different machines
 * 1 __GitLab CI__ and N __GitLab CI Runner__ instances on local machines
 
-![screen](https://raw.github.com/gitlabhq/gitlab-ci/master/app/assets/images/arch.jpg)
+![screen](https://gitlab.com/gitlab-org/gitlab-ci/raw/master/app/assets/images/arch.jpg)
 
 For more information see:
 [Announcing GitLab CI 3.0](http://blog.gitlab.org/announcing-gitlab-ci-3.0/)
@@ -77,11 +79,13 @@ and
 
 ### Installation
 
-* [Installation guide](https://github.com/gitlabhq/gitlab-ci/blob/master/doc/installation.md)
+* [Installation guide](doc/install/installation.md)
 
 ### Docs
 
-* [API](doc/api.md)
+* [Update guides]()
+* [API](doc/api/api.md)
+* [Examples](doc/examples)
 
 ### How to add a new project to GitLab CI
 
@@ -106,6 +110,12 @@ Build script example:
     bundle exec rake db:migrate RAILS_ENV=test
     script/run_all_tests
 
+The build command is run from [GitlabCi::Build#command](https://github.com/gitlabhq/gitlab-ci-runner/blob/master/lib/build.rb#L96) and contains the following environmental variables:
+
+    CI_SERVER, CI_SERVER_NAME, CI_SERVER_VERSION, CI_SERVER_REVISION
+    CI_BUILD_REF, CI_BUILD_BEFORE_SHA, CI_BUILD_REF_NAME, CI_BUILD_ID
+
 ### Getting help
 
 * [Feedback and suggestions forum](http://feedback.gitlab.com/forums/176466-general/category/64310-gitlab-ci) is the place to propose and discuss new features for GitLab CI.
+* [Subscriptions from GitLab.com](https://www.gitlab.com/subscription/) have setting up and maintaining GitLab CI as an optional extra.

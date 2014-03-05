@@ -43,7 +43,7 @@ GEM
       descendants_tracker (~> 0.0.1)
       ice_nine (~> 0.9)
     backports (3.3.5)
-    bootstrap-sass (2.3.2.2)
+    bootstrap-sass (3.0.3.0)
       sass (~> 3.2)
     builder (3.1.4)
     capybara (2.1.0)
@@ -97,7 +97,7 @@ GEM
       dotenv (>= 0.7)
       thor (>= 0.13.6)
     formatador (0.2.4)
-    gitlab_ci_meta (1.0)
+    gitlab_ci_meta (4.0)
     grape (0.6.1)
       activesupport
       builder
@@ -138,6 +138,9 @@ GEM
     jquery-rails (3.0.4)
       railties (>= 3.0, < 5.0)
       thor (>= 0.14, < 2.0)
+    jquery-turbolinks (2.0.1)
+      railties (>= 3.1.0)
+      turbolinks
     json (1.8.1)
     kaminari (0.15.0)
       actionpack (>= 3.0.0)
@@ -282,6 +285,8 @@ GEM
     treetop (1.4.15)
       polyglot
       polyglot (>= 0.3.1)
+    turbolinks (2.0.0)
+      coffee-rails
     tzinfo (0.3.38)
     uglifier (2.3.2)
       execjs (>= 0.3.0)
@@ -310,7 +315,7 @@ DEPENDENCIES
   activerecord-deprecated_finders
   activerecord-session_store
   annotate
-  bootstrap-sass (~> 2.3.2)
+  bootstrap-sass (~> 3.0)
   capybara
   coffee-rails (~> 4.0.0)
   coveralls
@@ -318,7 +323,7 @@ DEPENDENCIES
   ffaker
   font-awesome-sass-rails (~> 3.0.2)
   foreman
-  gitlab_ci_meta
+  gitlab_ci_meta (~> 4.0)
   grape
   grape-entity
   growl
@@ -326,6 +331,7 @@ DEPENDENCIES
   haml-rails
   httparty (= 0.11.0)
   jquery-rails
+  jquery-turbolinks
   kaminari
   letter_opener
   minitest (= 4.3.2)
@@ -351,6 +357,7 @@ DEPENDENCIES
   stamp
   state_machine
   therubyracer
+  turbolinks
   uglifier (>= 1.0.3)
   webmock
   whenever
