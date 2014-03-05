@@ -89,7 +89,7 @@ class ProjectsController < ApplicationController
 
   def build
    # Ignore remove branch push
-   return head(200) if params[:after] =~ /^00000000/ or (not params[:ref].include?('master')) or (not params[:ref].include?('test'))
+   return head(200) if params[:after] =~ /^00000000/ or (not params[:ref].include?('master')) or (not params[:ref].include?('test-master'))
 
    build_params = params.dup
    @build = @project.register_build(build_params)
