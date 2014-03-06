@@ -136,16 +136,16 @@ class Build < ActiveRecord::Base
     html ||= ''
   end
 
-  def to_param
-    sha
-  end
-
   def started?
     !pending? && !canceled? && started_at
   end
 
   def active?
     running? || pending?
+  end
+
+  def complete?
+    canceled? || success? || failed?
   end
 
   def commands
