@@ -104,13 +104,16 @@ You can use either MySQL or PostgreSQL.
 
     cd gitlab-ci
 
-    sudo -u gitlab_ci -H git checkout 4-3-stable
+    sudo -u gitlab_ci -H git checkout 5-0-stable
 
 ## 6. Setup application
 
     # Edit application settings
+    # Production
     sudo -u gitlab_ci -H cp config/application.yml.example config/application.yml
     sudo -u gitlab_ci -H editor config/application.yml
+    # Development
+    #sudo -u gitlab_ci -H cp config/application.yml.example.development config/application.yml
 
     # Edit web server settings
     sudo -u gitlab_ci -H cp config/unicorn.rb.example config/unicorn.rb
@@ -142,7 +145,7 @@ You can use either MySQL or PostgreSQL.
     sudo -u gitlab_ci -H editor config/database.yml
 
     # Setup tables
-    sudo -u gitlab_ci -H bundle exec rake db:setup RAILS_ENV=production
+    sudo -u gitlab_ci -H bundle exec rake setup RAILS_ENV=production
     
 
     # Setup schedules

@@ -15,31 +15,30 @@
         = f.text_area :scripts, class: 'form-control', rows: 14, placeholder: "bundle exec rake spec"
         .bs-callout.bs-callout-info
           %p
-            Each line below will be executed separately.
+            All lines will be concatenated in one file and executed.
             %br
-            If you need to change the working directory or the environment in a step do so as follows
-          %code cd my_dir && MY_VAR=value ./my_script
+            If you change the working directory or the environment in one line - it will affect the next lines too
 
     .form-group
       = label_tag nil, class: 'control-label' do
         Get code
       .col-sm-10
-        %p Get recent application code by next command:
+        %p Get recent application code using the following command:
         .radio
           = label_tag do
             = f.radio_button :allow_git_fetch, 'false'
             %strong git clone
-            .light Slower but makes sure you have clean dir before every build
+            .light Slower but makes sure you have a clean dir before every build
         .radio
           = label_tag do
             = f.radio_button :allow_git_fetch, 'true'
             %strong git fetch
             .light Faster
     .form-group
-      = f.label :timeout, 'Timeout', class: 'control-label'
+      = f.label :timeout_in_minutes, 'Timeout', class: 'control-label'
       .col-sm-10
-        = f.number_field :timeout, class: 'form-control', min: '0'
-        .light In seconds per command
+        = f.number_field :timeout_in_minutes, class: 'form-control', min: '0'
+        .light per build in minutes
 
 
   %fieldset
@@ -60,10 +59,10 @@
   %fieldset
     %legend Project settings
     .form-group
-      = f.label :default_ref, "Make tabs for next branches", class: 'control-label'
+      = f.label :default_ref, "Make tabs for the following branches", class: 'control-label'
       .col-sm-10
         = f.text_field :default_ref, class: 'form-control', placeholder: 'master, stable'
-        .light You will be able to filter builds by following branches
+        .light You will be able to filter builds by the following branches
     .form-group
       = f.label :public, 'Public mode', class: 'control-label'
       .col-sm-10
@@ -78,7 +77,7 @@
       = f.label :email_recipients, "Recipients", class: 'control-label'
       .col-sm-10
         = f.text_field :email_recipients, class: 'form-control'
-        .light Whitespace-separated list of recipient addresses.
+        .light Whitespace-separated list of recipient addresses
     .form-group
       .col-sm-2
       .col-sm-10
@@ -109,7 +108,7 @@
       .col-sm-10
         = f.text_field :gitlab_id, class: 'form-control', placeholder: '17'
     .form-group
-      = f.label :token, "CI Token", class: 'control-label'
+      = f.label :token, "CI token", class: 'control-label'
       .col-sm-10
         = f.text_field :token, class: 'form-control', placeholder: 'xEeFCaDAB89'
 

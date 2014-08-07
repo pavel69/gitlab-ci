@@ -1,9 +1,9 @@
 ## GitLab CI is an open-source continuous integration server
 
-* [![build status](https://secure.travis-ci.org/gitlabhq/gitlab-ci.png)](https://travis-ci.org/gitlabhq/gitlab-ci)
-* [![Code Climate](https://codeclimate.com/github/gitlabhq/gitlab-ci.png)](https://codeclimate.com/github/gitlabhq/gitlab-ci)
-* [![Dependency Status](https://gemnasium.com/gitlabhq/gitlab-ci.png)](https://gemnasium.com/gitlabhq/gitlab-ci)
-* [![Coverage Status](https://coveralls.io/repos/gitlabhq/gitlab-ci/badge.png?branch=master)](https://coveralls.io/r/gitlabhq/gitlab-ci)
+[![build status](https://ci.gitlab.org/projects/2/status.png?ref=master)](https://ci.gitlab.org/projects/2?ref=master)
+[![Code Climate](https://codeclimate.com/github/gitlabhq/gitlab-ci.png)](https://codeclimate.com/github/gitlabhq/gitlab-ci)
+[![Dependency Status](https://gemnasium.com/gitlabhq/gitlab-ci.png)](https://gemnasium.com/gitlabhq/gitlab-ci)
+[![Coverage Status](https://coveralls.io/repos/gitlabhq/gitlab-ci/badge.png?branch=master)](https://coveralls.io/r/gitlabhq/gitlab-ci)
 
 ![Screen](https://gitlab.com/gitlab-org/gitlab-ci/raw/master/public/gitlab-ci-screenshot.png)
 
@@ -35,14 +35,12 @@ Hardware requirements:
 * Distributed by default: GitLab CI and build runners can run on separate machines providing more stability
 * Realtime logging: the current build log scrolls and updates every few seconds
 
-### Limitations
+### Roadmap
 
-The following features are not in GitLab CI but merge requests are very welcome:
+The following features are not yet in GitLab CI but merge requests are very welcome:
 
-* Build artifacts access
-* Build pipeline / build promotion actions
-
-To support parallel builds and deployments there is a [blog article with a roadmap](http://blog.gitlab.org/gitlab-ci-with-parallel-builds-and-deployments/).
+* [Build artifacts access](http://feedback.gitlab.com/forums/176466-general/suggestions/4522830-allow-access-to-build-artifacts-of-gitlab-ci)
+* For parallel builds, deployments, branch specific builds and build metrics there is a [blog article with implementation steps](http://blog.gitlab.org/gitlab-ci-with-parallel-builds-and-deployments/)
 
 ### Runners
 
@@ -51,6 +49,7 @@ To perform the actual build you need a CI runner (also see the Architecture sect
 * [Official CI runner for Linux](https://gitlab.com/gitlab-org/gitlab-ci-runner)
 * [Unofficial CI runner for Windows](https://github.com/virtualmarc/gitlab-ci-runner-win)
 * [Unofficial CI runner for Scala/Java](https://github.com/nafg/gitlab-ci-runner-scala)
+* [Unofficial CI runner for Node](https://www.npmjs.org/package/gcr)
 
 ### Architecture
 
@@ -81,12 +80,6 @@ and
 
 * [Installation guide](doc/install/installation.md)
 
-### Docs
-
-* [Update guides]()
-* [API](doc/api/api.md)
-* [Examples](doc/examples)
-
 ### How to add a new project to GitLab CI
 
 1. Log in the GitLab CI web interface
@@ -115,7 +108,10 @@ The build command is run from [GitlabCi::Build#command](https://gitlab.com/gitla
     CI_SERVER, CI_SERVER_NAME, CI_SERVER_VERSION, CI_SERVER_REVISION
     CI_BUILD_REF, CI_BUILD_BEFORE_SHA, CI_BUILD_REF_NAME (branch), CI_BUILD_ID
 
+### Documentation
+
+All documentation can be found on [doc.gitlab.com/ci/](http://doc.gitlab.com/ci/).
+
 ### Getting help
 
-* [Feedback and suggestions forum](http://feedback.gitlab.com/forums/176466-general/category/64310-gitlab-ci) is the place to propose and discuss new features for GitLab CI.
-* [Subscriptions from GitLab.com](https://www.gitlab.com/subscription/) have setting up and maintaining GitLab CI as an optional extra.
+Please see [Getting help for GitLab](https://www.gitlab.com/getting-help/) on our website for the many options to get help.

@@ -8,8 +8,8 @@
 #  status      :string(255)
 #  finished_at :datetime
 #  trace       :text
-#  created_at  :datetime         not null
-#  updated_at  :datetime         not null
+#  created_at  :datetime
+#  updated_at  :datetime
 #  sha         :string(255)
 #  started_at  :datetime
 #  tmp_file    :string(255)
@@ -78,6 +78,10 @@ class Build < ActiveRecord::Base
     after_transition any => [:success, :failed, :canceled] do |build, transition|
       build.update_attributes finished_at: Time.now
       project = build.project
+
+      if project.web_hooks?
+        WebHookService.new.build_end(build)
+      end
 
       if project.email_notification?
         if build.status.to_sym == :failed || !project.email_only_broken_builds

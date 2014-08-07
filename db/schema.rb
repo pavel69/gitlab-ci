@@ -11,21 +11,24 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20140130121538) do
+ActiveRecord::Schema.define(version: 20140506091853) do
+
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "plpgsql"
 
   create_table "builds", force: true do |t|
     t.integer  "project_id"
     t.string   "ref"
     t.string   "status"
     t.datetime "finished_at"
-    t.text     "trace",       limit: 1073741823
+    t.text     "trace"
     t.datetime "created_at"
     t.datetime "updated_at"
     t.string   "sha"
     t.datetime "started_at"
     t.string   "tmp_file"
     t.string   "before_sha"
-    t.text     "push_data",   limit: 16777215
+    t.text     "push_data"
     t.integer  "runner_id"
   end
 
@@ -64,7 +67,6 @@ ActiveRecord::Schema.define(version: 20140130121538) do
 
   create_table "runners", force: true do |t|
     t.string   "token"
-    t.text     "public_key"
     t.datetime "created_at"
     t.datetime "updated_at"
     t.string   "description"
@@ -79,5 +81,12 @@ ActiveRecord::Schema.define(version: 20140130121538) do
 
   add_index "sessions", ["session_id"], name: "index_sessions_on_session_id", using: :btree
   add_index "sessions", ["updated_at"], name: "index_sessions_on_updated_at", using: :btree
+
+  create_table "web_hooks", force: true do |t|
+    t.string   "url",        null: false
+    t.integer  "project_id", null: false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
 
 end
