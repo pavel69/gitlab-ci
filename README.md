@@ -57,7 +57,7 @@ __GitLab CI__ is a web application with an API that stores its state in a databs
 It manages projects/builds and provides a nice user interface.
 It uses the GitLab application API to authenticate users.
 
-__GitLab CI Runner__ is a pure ruby application which processes builds.
+[GitLab CI Runner](https://github.com/gitlabhq/gitlab-ci-runner) is a pure ruby application which processes builds.
 It can be deployed separately and works with GitLab CI through an API.
 
 In order to run tests you need at least 1 __GitLab CI__ instance and 1 __GitLab CI Runner__.
@@ -72,13 +72,15 @@ Possible Cases:
 ![screen](https://gitlab.com/gitlab-org/gitlab-ci/raw/master/app/assets/images/arch.jpg)
 
 For more information see:
-[Announcing GitLab CI 3.0](http://blog.gitlab.org/announcing-gitlab-ci-3.0/)
+[Announcing GitLab CI 5.1](http://blog.gitlab.org/2014/10/22/gitlab-ci-5-dot-1-released/)
 and
 [Integrating GitLab CI With GitLab to Enable Distributed Builds](http://blog.gitlab.org/integrating-gitlab-ci-with-gitlab/)
 
 ### Installation
 
 * [Installation guide](doc/install/installation.md)
+* [Unofficial Docker Image by Sameer Naik](https://github.com/sameersbn/docker-gitlab-ci)
+* [Unofficial Docker Image by Anastas Dancha](https://registry.hub.docker.com/u/anapsix/gitlab-ci/) is available via `docker pull anapsix/gitlab-ci`
 
 ### How to add a new project to GitLab CI
 

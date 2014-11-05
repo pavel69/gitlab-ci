@@ -26,7 +26,7 @@ class ProjectsController < ApplicationController
   def show
     unless @project.public
       unless current_user
-        redirect_to(new_user_sessions_path) and return
+        redirect_to(new_user_sessions_path(return_to: request.fullpath)) and return
       end
 
       unless current_user.can_access_project?(@project.gitlab_id)
@@ -78,7 +78,7 @@ class ProjectsController < ApplicationController
 
     @build = CreateBuildService.new.execute(@project, params.dup)
 
-    if @build.persisted?
+    if @build && @build.persisted?
       head 201
     else
       head 400

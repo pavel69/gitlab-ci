@@ -2,17 +2,22 @@
   %td.status
     = build.status
 
+  %td.runner
+    - if build.runner
+      = link_to build.runner.id, admin_runner_path(build.runner)
+
   %td.build-link
     = link_to build_url(build) do
       %strong #{build.short_sha}
+
+  %td.build-project
+    = truncate build.project.name, length: 30
 
   %td.build-message
     %span= truncate(build.git_commit_message, length: 50)
 
   %td.build-branch
-    - unless @ref
-      %span
-        = link_to build.ref, project_path(@project, ref: build.ref)
+    = build.ref
 
   %td.duration
     - if build.duration
@@ -21,8 +26,3 @@
   %td.timestamp
     - if build.finished_at
       %span #{time_ago_in_words build.finished_at} ago
-
-  - if build.project.coverage_enabled?
-    %td.coverage
-      - if build.coverage
-        #{build.coverage}%
