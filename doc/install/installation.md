@@ -6,6 +6,8 @@ this should be the highest numbered stable branch (example shown below).
 
 If this is unclear check the [GitLab Blog](http://blog.gitlab.org/) for installation guide links by version.
 
+## GitLab CI 5.2 requires GitLab 7.5 or newer
+
 # Setup:
 
 ## 1. Packages / Dependencies
@@ -28,7 +30,7 @@ the default editor.
 
 Install the required packages:
 
-    sudo apt-get install wget curl gcc checkinstall libxml2-dev libxslt-dev libcurl4-openssl-dev libreadline6-dev libc6-dev libssl-dev libmysql++-dev make build-essential zlib1g-dev openssh-server git-core libyaml-dev postfix libpq-dev libicu-dev
+    sudo apt-get install wget curl gcc checkinstall libxml2-dev libxslt-dev libcurl4-openssl-dev libreadline6-dev libc6-dev libssl-dev libmysql++-dev make build-essential zlib1g-dev openssh-server git-core libyaml-dev postfix libpq-dev libicu-dev openssl
     sudo apt-get install redis-server 
 
 # 2. Ruby
@@ -104,7 +106,7 @@ You can use either MySQL or PostgreSQL.
 
     cd gitlab-ci
 
-    sudo -u gitlab_ci -H git checkout 5-1-stable
+    sudo -u gitlab_ci -H git checkout 5-2-stable
 
 ## 6. Setup application
 

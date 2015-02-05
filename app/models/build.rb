@@ -16,43 +16,76 @@
 #  before_sha  :string(255)
 #  push_data   :text
 #  runner_id   :integer
+#  coverage    :float
+#  commit_id   :integer
+#  commands    :text
+#  job_id      :integer
 #
 
 class Build < ActiveRecord::Base
-  belongs_to :project
+  LAZY_ATTRIBUTES = ['trace']
+
+  belongs_to :commit
   belongs_to :runner
+  belongs_to :job
 
-  serialize :push_data
+  attr_accessible :status, :finished_at, :trace, :started_at, :runner_id,
+    :commit_id, :coverage, :commands, :job_id
 
-  attr_accessible :project_id, :ref, :sha, :before_sha,
-    :status, :finished_at, :trace, :started_at, :push_data, :runner_id, :project_name, :coverage
-
-  validates :before_sha, presence: true
-  validates :sha, presence: true
-  validates :ref, presence: true
+  validates :commit, presence: true
   validates :status, presence: true
-  validate :valid_commit_sha
   validates :coverage, numericality: true, allow_blank: true
 
   scope :running, ->() { where(status: "running") }
   scope :pending, ->() { where(status: "pending") }
   scope :success, ->() { where(status: "success") }
   scope :failed, ->() { where(status: "failed")  }
-  scope :uniq_sha, ->() { select('DISTINCT(sha)') }
+  scope :unstarted, ->() { where(runner_id: nil) }
 
-  def self.last_month
-    where('created_at > ?', Date.today - 1.month)
-  end
+  acts_as_taggable
 
-  def self.first_pending
-    pending.where(runner_id: nil).order('created_at ASC').first
-  end
+  # To prevent db load megabytes of data from trace
+  default_scope -> { select(Build.columns_without_lazy) }
 
-  def self.create_from(build)
-    new_build = build.dup
-    new_build.status = :pending
-    new_build.runner_id = nil
-    new_build.save
+  class << self
+    def columns_without_lazy
+      (column_names - LAZY_ATTRIBUTES).map do |column_name|
+        "#{table_name}.#{column_name}"
+      end
+    end
+
+    def last_month
+      where('created_at > ?', Date.today - 1.month)
+    end
+
+    def first_pending
+      pending.unstarted.order('created_at ASC').first
+    end
+
+    def create_from(build)
+      new_build = build.dup
+      new_build.status = :pending
+      new_build.runner_id = nil
+      new_build.save
+    end
+
+    def retry(build)
+      new_build = Build.new(status: :pending)
+
+      if build.job
+        new_build.commands = build.job.commands
+        new_build.tag_list = build.job.tag_list
+      else
+        new_build.commands = build.commands
+      end
+
+      new_build.job_id = build.job_id
+      new_build.commit_id = build.commit_id
+      new_build.ref = build.ref
+      new_build.project_id = build.project_id
+      new_build.save
+      new_build
+    end
   end
 
   state_machine :status, initial: :pending do
@@ -102,47 +135,18 @@ class Build < ActiveRecord::Base
     state :canceled, value: 'canceled'
   end
 
-  def valid_commit_sha
-    if self.sha =~ /\A00000000/
-      self.errors.add(:sha, " cant be 00000000 (branch removal)")
-    end
-  end
-
-  def compare?
-    gitlab? && before_sha
-  end
-
-  def gitlab?
-    project.gitlab?
-  end
-
-  def ci_skip?
-    !!(git_commit_message =~ /(\[ci skip\])/)
-  end
-
-  def git_author_name
-    commit_data[:author][:name] if commit_data && commit_data[:author]
-  end
-
-  def git_author_email
-    commit_data[:author][:email] if commit_data && commit_data[:author]
-  end
-
-  def git_commit_message
-    commit_data[:message] if commit_data
-  end
-
-  def short_before_sha
-    before_sha[0..8]
-  end
-
-  def short_sha
-    sha[0..8]
-  end
+  delegate :sha, :short_sha, :before_sha,
+    to: :commit, prefix: false
 
   def trace_html
     html = Ansi2html::convert(trace) if trace.present?
     html ||= ''
+  end
+
+  def trace
+    if project && read_attribute(:trace).present?
+      read_attribute(:trace).gsub(project.token, 'xxxxxx')
+    end
   end
 
   def started?
@@ -157,44 +161,8 @@ class Build < ActiveRecord::Base
     canceled? || success? || failed?
   end
 
-  def commands
-    project.scripts
-  end
-
-  def commit_data
-    push_data[:commits].each do |commit|
-      return commit if commit[:id] == sha
-    end
-  rescue
-    nil
-  end
-
-  # Build a clone-able repo url
-  # using http and basic auth
-  def repo_url
-    auth = "gitlab-ci-token:#{project.token}@"
-    url = project.gitlab_url + ".git"
-    url.sub(/^https?:\/\//) do |prefix|
-      prefix + auth
-    end
-  end
-
   def timeout
     project.timeout
-  end
-
-  def allow_git_fetch
-    project.allow_git_fetch
-  end
-
-  def project_name
-    project.name
-  end
-
-  def project_recipients
-    recipients = project.email_recipients.split(' ')
-    recipients << git_author_email if project.email_add_committer?
-    recipients.uniq
   end
 
   def duration
@@ -203,6 +171,26 @@ class Build < ActiveRecord::Base
     elsif started_at
       Time.now - started_at
     end
+  end
+
+  def project
+    commit.project
+  end
+
+  def project_id
+    commit.project_id
+  end
+
+  def project_name
+    project.name
+  end
+
+  def repo_url
+    project.repo_url_with_auth
+  end
+
+  def allow_git_fetch
+    project.allow_git_fetch
   end
 
   def update_coverage
@@ -224,6 +212,30 @@ class Build < ActiveRecord::Base
     rescue => ex
       # if bad regex or something goes wrong we dont want to interrupt transition
       # so we just silentrly ignore error for now
+    end
+  end
+
+  def job_name
+    if job
+      job.name
+    end
+  end
+
+  def ref
+    build_ref = read_attribute(:ref)
+
+    if build_ref.present?
+      build_ref
+    else
+      commit.ref
+    end
+  end
+
+  def for_tag?
+    if job && job.build_tags
+      true
+    else
+      false
     end
   end
 end

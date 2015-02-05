@@ -1,16 +1,15 @@
 class ImageForBuildService
   def execute(project, params)
-    if params[:sha]
-      # Look for last build if commit sha provided
-      build = project.last_build_for_sha(params[:sha])
-      image_name = image_for_build(build)
-    elsif params[:ref]
-      # Look for last build per branch
-      build = project.builds.where(ref: params[:ref]).last
-      image_name = image_for_build(build)
-    else
-      image_name = 'unknown.png'
-    end
+    image_name =
+      if params[:sha]
+        commit = project.commits.find_by(sha: params[:sha])
+        image_for_commit(commit)
+      elsif params[:ref]
+        commit = project.last_commit_for_ref(params[:ref])
+        image_for_commit(commit)
+      else
+        'unknown.png'
+      end
 
     image_path = Rails.root.join('public', image_name)
 
@@ -22,17 +21,13 @@ class ImageForBuildService
 
   private
 
-  def image_for_build(build)
-    return 'unknown.png' unless build
+  def image_for_commit(commit)
+    return 'unknown.png' unless commit
 
-    if build.success?
-      'success.png'
-    elsif build.failed?
-      'failed.png'
-    elsif build.active?
+    if commit.status == 'pending'
       'running.png'
     else
-      'unknown.png'
+      commit.status + ".png"
     end
   end
 end

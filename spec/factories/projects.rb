@@ -5,7 +5,6 @@
 #  id                       :integer          not null, primary key
 #  name                     :string(255)      not null
 #  timeout                  :integer          default(1800), not null
-#  scripts                  :text             not null
 #  created_at               :datetime
 #  updated_at               :datetime
 #  token                    :string(255)
@@ -20,6 +19,8 @@
 #  email_recipients         :string(255)      default(""), not null
 #  email_add_committer      :boolean          default(TRUE), not null
 #  email_only_broken_builds :boolean          default(TRUE), not null
+#  skip_refs                :string(255)
+#  coverage_regex           :string(255)
 #
 
 # Read about factories at https://github.com/thoughtbot/factory_girl
@@ -31,10 +32,13 @@ FactoryGirl.define do
     gitlab_url 'http://demo.gitlabhq.com/gitlab/gitlab-shell'
     ssh_url_to_repo 'git@demo.gitlab.com:gitlab/gitlab-shell.git'
     gitlab_id 8
-    scripts 'ls'
 
     factory :project do
       token 'iPWx6WM4lhHNedGfBpPJNP'
+    end
+
+    before :create do |project|
+      project.build_default_job
     end
   end
 end

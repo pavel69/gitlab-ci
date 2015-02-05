@@ -1,28 +1,32 @@
-%tr.build.alert{class: build_status_alert_class(build)}
-  %td.status
-    = build.status
+- if build.commit && build.project
+  %tr.build.alert{class: build_status_alert_class(build)}
+    %td.build-link
+      = link_to build_url(build) do
+        %strong #{build.id}
 
-  %td.runner
-    - if build.runner
-      = link_to build.runner.id, admin_runner_path(build.runner)
+    %td.status
+      = build.status
 
-  %td.build-link
-    = link_to build_url(build) do
-      %strong #{build.short_sha}
+    %td.commit-link
+      = commit_link(build.commit)
 
-  %td.build-project
-    = truncate build.project.name, length: 30
+    %td.runner
+      - if build.runner
+        = link_to build.runner.id, admin_runner_path(build.runner)
 
-  %td.build-message
-    %span= truncate(build.git_commit_message, length: 50)
+    %td.build-project
+      = truncate build.project.name, length: 30
 
-  %td.build-branch
-    = build.ref
+    %td.build-message
+      %span= truncate(build.commit.git_commit_message, length: 30)
 
-  %td.duration
-    - if build.duration
-      #{distance_of_time_in_words build.duration}
+    %td.build-branch
+      %span= truncate(build.ref, length: 25)
 
-  %td.timestamp
-    - if build.finished_at
-      %span #{time_ago_in_words build.finished_at} ago
+    %td.duration
+      - if build.duration
+        #{distance_of_time_in_words build.duration}
+
+    %td.timestamp
+      - if build.finished_at
+        %span #{time_ago_in_words build.finished_at} ago

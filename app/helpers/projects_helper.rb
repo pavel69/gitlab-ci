@@ -1,24 +1,4 @@
 module ProjectsHelper
-  def project_statuc_class(project)
-    if project.last_build.try :success?
-      'alert-success'
-    elsif project.last_build.try :failed?
-      'alert-danger'
-    else
-      'alert-warning'
-    end
-  end
-
-  def build_status_alert_class build
-    if build.success?
-      'alert-success'
-    elsif build.failed? || build.canceled?
-      'alert-danger'
-    else
-      'alert-warning'
-    end
-  end
-
   def ref_tab_class ref = nil
     'active' if ref == @ref
   end
@@ -41,5 +21,14 @@ module ProjectsHelper
   def html_badge_code(project, ref)
     url = status_project_url(project, ref: ref, format: 'png')
     "<a href='#{project_url(project, ref: ref)}'><img src='#{url}' /></a>"
+  end
+
+  def project_uses_specific_runner?(project)
+    project.runners.any?
+  end
+
+  def no_runners_for_project?(project)
+    project.runners.blank? &&
+      Runner.shared.blank?
   end
 end

@@ -5,7 +5,7 @@
 [![Dependency Status](https://gemnasium.com/gitlabhq/gitlab-ci.png)](https://gemnasium.com/gitlabhq/gitlab-ci)
 [![Coverage Status](https://coveralls.io/repos/gitlabhq/gitlab-ci/badge.png?branch=master)](https://coveralls.io/r/gitlabhq/gitlab-ci)
 
-![Screen](https://gitlab.com/gitlab-org/gitlab-ci/raw/master/public/gitlab-ci-screenshot.png)
+![Screen](https://raw.githubusercontent.com/gitlabhq/gitlab-ci/master/public/gitlab-ci-screenshot.png)
 
 ### Requirements
 
@@ -13,6 +13,10 @@ GitLab CI officially supports (recent versions of) these Linux distributions:
 
 * Ubuntu Linux
 * Debian/GNU Linux
+* CentOS
+* RedHat Enterprise Linux (please use the CentOS packages and instructions)
+* Scientific Linux (please use the CentOS packages and instructions)
+* Oracle Linux (please use the CentOS packages and instructions)
 
 Additionally GitLab CI requires:
 
@@ -34,13 +38,15 @@ Hardware requirements:
 * Merge request integration: see the status of the feature branch build within the Merge Request
 * Distributed by default: GitLab CI and build runners can run on separate machines providing more stability
 * Realtime logging: the current build log scrolls and updates every few seconds
+* Parallel builds: split a build over multiple runners so it executes quickly
 
-### Roadmap
+### Installation
 
-The following features are not yet in GitLab CI but merge requests are very welcome:
-
-* [Build artifacts access](http://feedback.gitlab.com/forums/176466-general/suggestions/4522830-allow-access-to-build-artifacts-of-gitlab-ci)
-* For parallel builds, deployments, branch specific builds and build metrics there is a [blog article with implementation steps](http://blog.gitlab.org/gitlab-ci-with-parallel-builds-and-deployments/)
+* [Omnibus packages](https://about.gitlab.com/downloads/) (recommended) now include the CI coordinator, see the [configuration instructions](https://gitlab.com/gitlab-org/omnibus-gitlab/blob/master/doc/gitlab-ci/README.md)
+* [Manual installation guide](doc/install/installation.md)
+* [Unofficial Docker Image by Sameer Naik](https://github.com/sameersbn/docker-gitlab-ci)
+* [Unofficial Docker Image by Anastas Dancha](https://registry.hub.docker.com/u/anapsix/gitlab-ci/) is available via `docker pull anapsix/gitlab-ci`
+* [GitLab Development Kit](https://gitlab.com/gitlab-org/gitlab-development-kit) is recommended for development work.
 
 ### Runners
 
@@ -75,12 +81,6 @@ For more information see:
 [Announcing GitLab CI 5.1](http://blog.gitlab.org/2014/10/22/gitlab-ci-5-dot-1-released/)
 and
 [Integrating GitLab CI With GitLab to Enable Distributed Builds](http://blog.gitlab.org/integrating-gitlab-ci-with-gitlab/)
-
-### Installation
-
-* [Installation guide](doc/install/installation.md)
-* [Unofficial Docker Image by Sameer Naik](https://github.com/sameersbn/docker-gitlab-ci)
-* [Unofficial Docker Image by Anastas Dancha](https://registry.hub.docker.com/u/anapsix/gitlab-ci/) is available via `docker pull anapsix/gitlab-ci`
 
 ### How to add a new project to GitLab CI
 

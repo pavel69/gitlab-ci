@@ -2,26 +2,28 @@ class BuildsController < ApplicationController
   before_filter :authenticate_user!, except: [:status]
   before_filter :project
   before_filter :authorize_access_project!, except: [:status]
-  before_filter :build, except: [:status, :show]
+  before_filter :authorize_manage_project!, except: [:status, :show]
+  before_filter :build, except: [:show]
 
   def show
     if params[:id] =~ /\A\d+\Z/
       @build = build
     else
-      # try to find build by sha
-      build = build_by_sha
+      # try to find commit by sha
+      commit = commit_by_sha
 
-      if build
-        # Redirect from sha to build with id
-        redirect_to project_build_path(build.project, build)
+      if commit
+        # Redirect to commit page
+        redirect_to project_commit_path(commit.project, commit)
         return
       end
     end
 
     raise ActiveRecord::RecordNotFound unless @build
 
-    @builds = project.builds.where(sha: @build.sha).order('id DESC')
+    @builds = @project.commits.find_by_sha(@build.sha).builds.order('id DESC')
     @builds = @builds.where("id not in (?)", @build.id).page(params[:page]).per(20)
+    @commit = @build.commit
 
     respond_to do |format|
       format.html
@@ -32,19 +34,16 @@ class BuildsController < ApplicationController
   end
 
   def retry
-    build = project.builds.create(
-      sha: @build.sha,
-      before_sha: @build.before_sha,
-      push_data: @build.push_data,
-      ref: @build.ref
-    )
+    build = Build.retry(@build)
 
-    redirect_to project_build_path(project, build)
+    if params[:return_to]
+      redirect_to params[:return_to]
+    else
+      redirect_to project_build_path(project, build)
+    end
   end
 
   def status
-    @build = build_by_sha
-
     render json: @build.to_json(only: [:status, :id, :sha, :coverage])
   end
 
@@ -61,10 +60,10 @@ class BuildsController < ApplicationController
   end
 
   def build
-    @build ||= project.builds.find_by(id: params[:id])
+    @build ||= project.builds.unscoped.find_by(id: params[:id])
   end
 
-  def build_by_sha
-    project.builds.where(sha: params[:id]).last
+  def commit_by_sha
+    @project.commits.find_by(sha: params[:id])
   end
 end

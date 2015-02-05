@@ -5,7 +5,6 @@
 #  id                       :integer          not null, primary key
 #  name                     :string(255)      not null
 #  timeout                  :integer          default(1800), not null
-#  scripts                  :text             not null
 #  created_at               :datetime
 #  updated_at               :datetime
 #  token                    :string(255)
@@ -20,23 +19,33 @@
 #  email_recipients         :string(255)      default(""), not null
 #  email_add_committer      :boolean          default(TRUE), not null
 #  email_only_broken_builds :boolean          default(TRUE), not null
+#  skip_refs                :string(255)
+#  coverage_regex           :string(255)
 #
 
 class Project < ActiveRecord::Base
-  attr_accessible :name, :path, :scripts, :timeout, :token, :timeout_in_minutes,
+  include ProjectStatus
+
+  attr_accessible :name, :path, :timeout, :token, :timeout_in_minutes,
     :default_ref, :gitlab_url, :always_build, :polling_interval,
     :public, :ssh_url_to_repo, :gitlab_id, :allow_git_fetch, :skip_refs,
-    :email_recipients, :email_add_committer, :email_only_broken_builds, :coverage_regex
+    :email_recipients, :email_add_committer, :email_only_broken_builds, :coverage_regex,
+    :jobs_attributes
 
-  has_many :builds, dependent: :destroy
+  has_many :commits, dependent: :destroy
+  has_many :builds, through: :commits, dependent: :destroy
   has_many :runner_projects, dependent: :destroy
   has_many :runners, through: :runner_projects
   has_many :web_hooks, dependent: :destroy
+  has_many :jobs, dependent: :destroy
+
+  accepts_nested_attributes_for :jobs, allow_destroy: true
 
   #
   # Validations
   #
-  validates_presence_of :name, :scripts, :timeout, :token, :default_ref, :gitlab_url, :ssh_url_to_repo, :gitlab_id
+  validates_presence_of :name, :timeout, :token, :default_ref,
+    :gitlab_url, :ssh_url_to_repo, :gitlab_id
 
   validates_uniqueness_of :name
 
@@ -44,6 +53,7 @@ class Project < ActiveRecord::Base
     presence: true,
     if: ->(project) { project.always_build.present? }
 
+  validate :validate_jobs
 
   scope :public_only, ->() { where(public: true) }
 
@@ -64,7 +74,6 @@ ls -la
         name:                    project.name_with_namespace,
         gitlab_id:               project.id,
         gitlab_url:              project.web_url,
-        scripts:                 Project.base_build_script,
         default_ref:             project.default_branch || 'master',
         ssh_url_to_repo:         project.ssh_url_to_repo,
         email_add_committer:     GitlabCi.config.gitlab_ci.add_committer,
@@ -107,38 +116,6 @@ ls -la
     gitlab_url.present?
   end
 
-  def status
-    last_build.status if last_build
-  end
-
-  def broken?
-    last_build.failed? || last_build.canceled? if last_build
-  end
-
-  def success?
-    last_build.success? if last_build
-  end
-
-  def broken_or_success?
-    broken? || success?
-  end
-
-  def last_build
-    builds.last
-  end
-
-  def last_build_date
-    last_build.try(:created_at)
-  end
-
-  def human_status
-    status
-  end
-
-  def last_build_for_sha(sha)
-    builds.where(sha: sha).order('id DESC').limit(1).first
-  end
-
   def tracked_refs
     @tracked_refs ||= default_ref.split(",").map{|ref| ref.strip}
   end
@@ -160,14 +137,6 @@ ls -la
     web_hooks.any?
   end
 
-  # onlu check for toggling build status within same ref.
-  def last_build_changed_status?
-    ref = last_build.ref
-    last_builds = builds.where(ref: ref).order('id DESC').limit(2)
-    return false if last_builds.size < 2
-    return last_builds[0].status != last_builds[1].status
-  end
-
   def timeout_in_minutes
     timeout / 60
   end
@@ -186,5 +155,27 @@ ls -la
 
   def coverage_enabled?
     coverage_regex.present?
+  end
+
+  def build_default_job
+    jobs.build(commands: Project.base_build_script)
+  end
+
+  def validate_jobs
+    remaining_jobs = jobs.reject(&:marked_for_destruction?)
+
+    if remaining_jobs.empty?
+      errors.add(:jobs, "At least one foo")
+    end
+  end
+
+  # Build a clone-able repo url
+  # using http and basic auth
+  def repo_url_with_auth
+    auth = "gitlab-ci-token:#{token}@"
+    url = gitlab_url + ".git"
+    url.sub(/^https?:\/\//) do |prefix|
+      prefix + auth
+    end
   end
 end

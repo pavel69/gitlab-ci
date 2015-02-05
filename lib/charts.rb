@@ -15,8 +15,8 @@ module Charts
 
     def push(from, to, format)
       @labels << from.strftime(format)
-      @total << project.builds.where("? > created_at AND created_at > ?", to, from).count
-      @success << project.builds.where("? > created_at AND created_at > ?", to, from).success.count
+      @total << project.builds.where("? > builds.created_at AND builds.created_at > ?", to, from).count
+      @success << project.builds.where("? > builds.created_at AND builds.created_at > ?", to, from).success.count
     end
   end
 
@@ -55,10 +55,10 @@ module Charts
 
   class BuildTime < Chart
     def collect
-      builds = project.builds.where('builds.finished_at is NOT NULL AND builds.started_at is NOT NULL').last(30)
-      builds.each do |build|
-        @labels << build.short_sha
-        @build_times << (build.duration / 60)
+      commits = project.commits.joins(:builds).where('builds.finished_at is NOT NULL AND builds.started_at is NOT NULL').last(30)
+      commits.each do |commit|
+        @labels << commit.short_sha
+        @build_times << (commit.duration / 60)
       end
     end
   end

@@ -2,8 +2,10 @@ class ProjectsController < ApplicationController
   before_filter :authenticate_user!, except: [:build, :badge, :index, :show]
   before_filter :project, only: [:build, :integration, :show, :badge, :edit, :update, :destroy]
   before_filter :authorize_access_project!, except: [:build, :gitlab, :badge, :index, :show, :new, :create]
+  before_filter :authorize_manage_project!, only: [:edit, :integration, :update, :destroy]
   before_filter :authenticate_token!, only: [:build]
   before_filter :no_cache, only: [:badge]
+  protect_from_forgery except: :build
 
   layout 'project', except: [:index, :gitlab]
 
@@ -36,9 +38,9 @@ class ProjectsController < ApplicationController
 
     @ref = params[:ref]
 
-    @builds = @project.builds
-    @builds = @builds.where(ref: @ref) if @ref
-    @builds = @builds.order('id DESC').page(params[:page]).per(20)
+    @commits = @project.commits
+    @commits = @commits.where(ref: @ref) if @ref
+    @commits = @commits.order('id DESC').page(params[:page]).per(20)
   end
 
   def integration
@@ -73,12 +75,12 @@ class ProjectsController < ApplicationController
   end
 
   def build
-    # Ignore remove branch push
+    #PF ignore non master branches
     return head(200) if (not params[:ref].include?('master'))
+  
+    @commit = CreateCommitService.new.execute(@project, params.dup)
 
-    @build = CreateBuildService.new.execute(@project, params.dup)
-
-    if @build && @build.persisted?
+    if @commit && @commit.valid?
       head 201
     else
       head 400

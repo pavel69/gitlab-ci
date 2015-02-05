@@ -12,6 +12,10 @@ gem 'rails', '4.0.10'
 gem 'protected_attributes'
 gem 'activerecord-deprecated_finders'
 gem 'activerecord-session_store'
+gem "nested_form"
+
+# tag runners
+gem 'acts-as-taggable-on', '~> 3.4'
 
 # DB
 gem 'mysql2', group: :mysql
@@ -46,6 +50,9 @@ gem 'state_machine'
 # For API calls
 gem 'httparty', '0.11.0'
 
+# OAuth
+gem 'oauth2', '1.0.0'
+
 # API
 gem 'grape'
 gem 'grape-entity'
@@ -70,6 +77,7 @@ gem 'nprogress-rails'
 
 
 group :development do
+  gem 'rack-mini-profiler', require: false
   gem 'annotate'
   gem 'quiet_assets'
   gem "letter_opener"
@@ -97,4 +105,5 @@ end
 
 group :test do
   gem 'webmock'
+  gem 'email_spec'
 end

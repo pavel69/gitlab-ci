@@ -1,25 +1,52 @@
 %h4.page-title
   = @project.name
-  .pull-right
-    = link_to edit_project_path(@project), class: "btn btn-default btn-small" do
-      %i.icon-edit.icon-white
-      Edit Project
+  @
+  = @commit.short_sha
+  - if current_user.can_manage_project?(@project.gitlab_id)
+    .pull-right
+      = link_to edit_project_path(@project), class: "btn btn-default btn-small" do
+        %i.icon-edit.icon-white
+        Edit Project
 
 %p
-  = link_to project_path(@project) do
-    &larr; Back to project builds
+  = link_to project_commit_path(@project, @build.commit) do
+    &larr; Back to project commit
 %hr
+
+- if @commit.matrix?
+  %ul.nav.nav-tabs.append-bottom-10
+    - @commit.builds_without_retry.each do |build|
+      %li{class: ('active' if build == @build) }
+        = link_to build_url(build) do
+          %i{class: build_icon_css_class(build)}
+          %span
+            Build ##{build.id}
+            - if build.job_name
+              &middot;
+              = build.job_name
+
+    - unless @commit.builds_without_retry.include?(@build)
+      %li.active
+        %a
+          Build ##{@build.id}
+          &middot;
+          %i.icon-warning-sign
+          This build was retried.
 
 .row
   .col-md-9
     .build-head.alert{class: build_status_alert_class(@build)}
       %h4
-        Build for commit
-        %code #{@build.short_sha}
-        from
+        - if @build.for_tag?
+          Build for tag
+          %code #{@build.ref}
+        - else
+          Build for commit
+          %code #{@build.short_sha}
+          from
 
-        = link_to project_path(@build.project, ref: @build.ref) do
-          %span.label.label-primary= "#{@build.ref}"
+          = link_to project_path(@build.project, ref: @build.ref) do
+            %span.label.label-primary= "#{@build.ref}"
 
         - if @build.duration
           .pull-right
@@ -36,8 +63,8 @@
 
     .clearfix
       - if @build.active?
-        .autoscroll-container.pull-right
-          %button.btn.btn-default.btn-sm#autoscroll-button{:type => "button", :data => {:state => 'disabled'}} enable autoscroll
+        .autoscroll-container
+          %button.btn.btn-success.btn-sm#autoscroll-button{:type => "button", :data => {:state => 'disabled'}} enable autoscroll
         .clearfix
     %pre.trace#build-trace
       %code.bash
@@ -51,14 +78,16 @@
           Test coverage
         %h1 #{@build.coverage}%
 
+
     .build-widget
       %h4.title
         Build
-        .pull-right
-          - if @build.active?
-            = link_to "Cancel", cancel_project_build_path(@project, @build), class: 'btn btn-sm btn-danger'
-          - else
-            = link_to "Retry", retry_project_build_path(@project, @build), class: 'btn btn-sm btn-primary', method: :post
+        - if current_user.can_manage_project?(@project.gitlab_id)
+          .pull-right
+            - if @build.active?
+              = link_to "Cancel", cancel_project_build_path(@project, @build), class: 'btn btn-sm btn-danger'
+            - else
+              = link_to "Retry", retry_project_build_path(@project, @build), class: 'btn btn-sm btn-primary', method: :post
 
       - if @build.duration
         %p
@@ -82,7 +111,7 @@
         .pull-right
           %small #{build_commit_link @build}
 
-      - if @build.compare?
+      - if @build.commit.compare?
         %p
           %span.attr-name Compare:
           #{build_compare_link @build}
@@ -91,10 +120,18 @@
         #{build_ref_link @build}
       %p
         %span.attr-name Author:
-        #{@build.git_author_name}
+        #{@build.commit.git_author_name}
       %p
         %span.attr-name Message:
-        #{@build.git_commit_message}
+        #{@build.commit.git_commit_message}
+
+    - if @build.tags.any?
+      .build-widget
+        %h4.title
+          Tags
+        - @build.tag_list.each do |tag|
+          %span.label.label-primary
+            = tag
 
     - if @builds.present?
       .build-widget
@@ -104,7 +141,10 @@
             %tr.build.alert{class: build_status_alert_class(build)}
               %td
                 = link_to build_url(build) do
-                  %span #{i+=1} &ndash; #{build.short_sha}
+                  %span ##{build.id}
+              %td
+                - if build.job_name
+                  = build.job_name
               %td.status= build.status
 
 

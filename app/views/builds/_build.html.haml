@@ -3,16 +3,27 @@
     = build.status
 
   %td.build-link
-    = link_to build_url(build) do
-      %strong #{build.short_sha}
+    = link_to project_build_path(build.project, build) do
+      %strong Build ##{build.id}
 
-  %td.build-message
-    %span= truncate(build.git_commit_message, length: 50)
+  %td
+    - if build.job
+      - if build.for_tag?
+        Tag
+        &middot;
+        #{build.ref}
+      - else
+        Commit
+        &middot;
+        #{build.short_sha}
+  %td
+    = build.job_name
+    - if build.tags.any?
+      .pull-right
+        - build.tag_list.each do |tag|
+          %span.label.label-primary
+            = tag
 
-  %td.build-branch
-    - unless @ref
-      %span
-        = link_to build.ref, project_path(@project, ref: build.ref)
 
   %td.duration
     - if build.duration
@@ -26,3 +37,13 @@
     %td.coverage
       - if build.coverage
         #{build.coverage}%
+
+  %td
+    - if defined?(controls) && current_user.can_manage_project?(@project.gitlab_id)
+      .pull-right
+        - if build.active?
+          = link_to cancel_project_build_path(build.project, build, return_to: request.original_url), title: 'Cancel build' do
+            %i.icon-remove.cred
+        - else
+          = link_to retry_project_build_path(build.project, build, return_to: request.original_url), method: :post, title: 'Retry build' do
+            %i.icon-repeat

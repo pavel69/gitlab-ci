@@ -32,8 +32,8 @@
         %strong= @project.public
       %p
         Last build:
-        - if @project.last_build
-          = time_ago_in_words @project.last_build_date
+        - if @project.last_commit_date
+          = time_ago_in_words @project.last_commit_date
     %br
     %fieldset
       %legend Email notification
@@ -48,11 +48,13 @@
         %strong= @project.email_only_broken_builds
 
   .col-md-6
-    %fieldset
-      %legend Build script
-      = preserve do
-        %pre
-          = @project.scripts
+    - @project.jobs.active.each do |job|
+      %fieldset
+        %legend 
+          Build script for #{job.name}
+        = preserve do
+          %pre
+            = job.commands
 
     %br
     %fieldset
@@ -75,5 +77,5 @@
       %p
         Commits covered:
         %strong
-          = @project.builds.uniq_sha.count
+          = @project.commits.count
 

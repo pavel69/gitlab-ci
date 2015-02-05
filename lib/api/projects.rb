@@ -4,6 +4,30 @@ module API
     before { authenticate! }
 
     resource :projects do
+      # Register new webhook for project
+      #
+      # Parameters
+      #   project_id (required) - The ID of a project
+      #   web_hook (required) - WebHook URL
+      # Example Request
+      #   POST /projects/:project_id/webhooks
+      post ":project_id/webhooks" do
+        required_attributes! [:web_hook]
+
+        project = Project.find(params[:project_id])
+
+        if project.present? && current_user.can_access_project?(project.gitlab_id)
+          web_hook = project.web_hooks.new({url: params[:web_hook]})
+
+          if web_hook.save
+            present web_hook, :with => Entities::WebHook
+          else
+            errors = web_hook.errors.full_messages.join(", ")
+            render_api_error!(errors, 400)
+          end
+        end
+      end
+
       # Retrieve all Gitlab CI projects that the user has access to
       #
       # Example Request:
@@ -55,7 +79,6 @@ module API
       #   gitlab_id (required)       - The gitlab id of the project
       #   gitlab_url (required)      - The gitlab web url to the project
       #   ssh_url_to_repo (required) - The gitlab ssh url to the repo
-      #   scripts                    - The shell script provided for a runner to run
       #   default_ref                - The branch to run against (defaults to `master`)
       # Example Request:
       #   POST /projects
@@ -66,12 +89,12 @@ module API
           :name            => params[:name],
           :gitlab_id       => params[:gitlab_id],
           :gitlab_url      => params[:gitlab_url],
-          :scripts         => params[:scripts] || 'ls -al',
           :default_ref     => params[:default_ref] || 'master',
           :ssh_url_to_repo => params[:ssh_url_to_repo]
         }
 
         project = Project.new(filtered_params)
+        project.build_default_job
 
         if project.save
           present project, :with => Entities::Project
@@ -89,7 +112,6 @@ module API
       #   gitlab_id       - The gitlab id of the project
       #   gitlab_url      - The gitlab web url to the project
       #   ssh_url_to_repo - The gitlab ssh url to the repo
-      #   scripts         - The shell script provided for a runner to run
       #   default_ref     - The branch to run against (defaults to `master`)
       # Example Request:
       #   PUT /projects/:id
@@ -97,7 +119,7 @@ module API
         project = Project.find(params[:id])
 
         if project.present? && current_user.can_access_project?(project.gitlab_id)
-          attrs = attributes_for_keys [:name, :gitlab_id, :gitlab_url, :scripts, :default_ref, :ssh_url_to_repo]
+          attrs = attributes_for_keys [:name, :gitlab_id, :gitlab_url, :default_ref, :ssh_url_to_repo]
 
           if project.update_attributes(attrs)
             present project, :with => Entities::Project

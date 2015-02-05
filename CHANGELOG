@@ -1,3 +1,31 @@
+v5.4 (Requires GitLab 7.7)
+  - Fixed 500 error for badge if build is pending
+  - Non-admin users can now register specific runners for their projects
+  - Project specific runners page which users can access
+  - Remove progress output from schedule_builds cron job
+  - Fix schedule_builds rake task
+  - Fix test webhook button
+  - Job can be branch specific or tag specifi or both
+  - Shared runners builds projects which are not assigned to specific ones
+  - Job can be runner specific through tags
+  - Runner have tags
+  - Move job settings to separate page
+  - Add authorization level managing projects
+  - OAuth authentication via GitLab.
+
+v5.3
+  - Remove annoying 'Done' message from schedule_builds cron job
+  - Fix a style issue with the navbar
+  - Skip CSRF check on the project's build page
+  - Fix showing wrong build script on admin projects page
+  - Add branch and commit message to build result emails
+
+v5.2
+  - Improve performance by adding new indicies
+  - Separate Commit logic from Build logic in prep for Parallel Builds
+  - Parallel builds
+  - You can have multiple build scripts per project
+
 v5.1
   - Registration token and runner token are named differently
   - Redirect to previous page after sign-in
@@ -83,7 +111,7 @@ v2.2.0
   - rescue build timeout correctly
   - badge helper with markdown & html
   - increased test coverage to 85%
- 
+
 v2.1.0
   - Removed horizontal scroll for build trace
   - new status badges

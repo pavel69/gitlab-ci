@@ -12,18 +12,12 @@ module API
       post "register" do
         authenticate_runner!
         required_attributes! [:token]
+        build = RegisterBuildService.new.execute(current_runner)
 
-        ActiveRecord::Base.transaction do
-          builds = Build.all
-          builds = builds.where(project_id: current_runner.projects) unless current_runner.shared?
-          build =  builds.first_pending
-
-          not_found! and return unless build
-
-          build.runner_id = current_runner.id
-          build.save!
-          build.run!
+        if build
           present build, with: Entities::Build
+        else
+          not_found!
         end
       end
 
@@ -48,6 +42,12 @@ module API
         end
       end
 
+      # TODO: Remove it after 5.2 release
+      #
+      # THIS API IS DEPRECATED.
+      # Now builds are created by commit. In order to test specific commit you
+      # need to create Commit entity via Commit API
+      #
       # Create a build
       #
       # Parameters:
@@ -80,7 +80,10 @@ module API
         required_attributes! [:project_id, :data, :project_token]
         project = Project.find(params[:project_id])
         authenticate_project_token!(project)
-        build = CreateBuildService.new.execute(project, params[:data])
+        commit = CreateCommitService.new.execute(project, params[:data])
+
+        # Temporary solution to keep api compatibility
+        build = commit.builds.first
 
         if build.persisted?
           present build, with: Entities::Build
