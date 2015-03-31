@@ -26,6 +26,7 @@ class Build < ActiveRecord::Base
   LAZY_ATTRIBUTES = ['trace']
 
   belongs_to :commit
+  belongs_to :project
   belongs_to :runner
   belongs_to :job
 
@@ -105,7 +106,7 @@ class Build < ActiveRecord::Base
       transition [:pending, :running] => :canceled
     end
 
-    after_transition :pending => :running do |build, transition|
+    after_transition pending: :running do |build, transition|
       build.update_attributes started_at: Time.now
     end
 
@@ -117,11 +118,8 @@ class Build < ActiveRecord::Base
         WebHookService.new.build_end(build)
       end
 
-      if project.email_notification?
-        if build.status.to_sym == :failed || !project.email_only_broken_builds
-          NotificationService.new.build_ended(build)
-        end
-      end
+      build.commit.create_deploy_builds(build.ref)
+      project.execute_services(build)
 
       if project.coverage_enabled?
         build.update_coverage

@@ -2,12 +2,13 @@ module API
   module Helpers
     PRIVATE_TOKEN_PARAM = :private_token
     PRIVATE_TOKEN_HEADER = "HTTP_PRIVATE_TOKEN"
+    UPDATE_RUNNER_EVERY = 60
 
     def current_user
       @current_user ||= begin
         options = {
-          :private_token => (params[PRIVATE_TOKEN_PARAM] || env[PRIVATE_TOKEN_HEADER]),
-          :url => params[:url]
+          private_token: (params[PRIVATE_TOKEN_PARAM] || env[PRIVATE_TOKEN_HEADER]),
+          url: params[:url]
         }
         UserSession.new.authenticate_by_token(options)
       end
@@ -31,6 +32,12 @@ module API
 
     def authenticate_project_token!(project)
       forbidden! unless project.valid_token?(params[:project_token])
+    end
+
+    def update_runner_last_contact
+      if current_runner.contacted_at.nil? || Time.now - current_runner.contacted_at >= UPDATE_RUNNER_EVERY
+        current_runner.update_attributes(contacted_at: Time.now)
+      end
     end
 
     # Checks the occurrences of required attributes, each attribute must be present in the params hash
@@ -80,7 +87,7 @@ module API
     end
 
     def render_api_error!(message, status)
-      error!({'message' => message}, status)
+      error!({ 'message' => message }, status)
     end
 
     private

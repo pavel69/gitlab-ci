@@ -17,15 +17,89 @@ module API
         project = Project.find(params[:project_id])
 
         if project.present? && current_user.can_access_project?(project.gitlab_id)
-          web_hook = project.web_hooks.new({url: params[:web_hook]})
+          web_hook = project.web_hooks.new({ url: params[:web_hook] })
 
           if web_hook.save
-            present web_hook, :with => Entities::WebHook
+            present web_hook, with: Entities::WebHook
           else
             errors = web_hook.errors.full_messages.join(", ")
             render_api_error!(errors, 400)
           end
         end
+      end
+
+      # Retrieve all jobs for a project
+      #
+      # Parameters
+      #   id (required) - The ID of a project
+      # Example Request
+      #   GET /projects/:id/jobs
+      get ":id/jobs" do
+        project = Project.find(params[:id])
+
+        not_found! if project.blank?
+        unauthorized! unless current_user.can_access_project?(project.gitlab_id)
+
+        project.jobs
+      end
+
+      # Add a new job to a project
+      #
+      # Parameters
+      #   id (required) - The ID of a project
+      #   name (required) - The job name
+      #   commands (required) - The command line script for the job
+      #   active (optional) - The command is active of not
+      #   build_branches (optional) - Trigger commit builds
+      #   build_tags (optional) - Trigger tag builds
+      #   tags (optional) - The tags associated with this job
+      # Example Request
+      #   POST /projects/:id/jobs
+      post ":id/jobs" do
+        required_attributes! [:name, :commands]
+
+        project = Project.find(params[:id])
+
+        not_found! if project.blank?
+        unauthorized! unless current_user.can_access_project?(project.gitlab_id)
+
+        job_params =
+        {
+          name: params[:name],
+          commands: params[:commands],
+        }
+
+        job_params[:active] = params[:active] unless params[:active].nil?
+        job_params[:build_branches] = params[:build_branches] unless params[:build_branches].nil?
+        job_params[:build_tags] = params[:build_tags] unless params[:build_tags].nil?
+        job_params[:tag_list] = params[:tags] unless params[:tags].nil?
+
+        job = project.jobs.new(job_params)
+        if job.save
+          present job, with: Entities::Job
+        else
+          errors = job.errors.full_messages.join(", ")
+          render_api_error!(errors, 400)
+        end
+      end
+
+      # Delete a job for a project
+      #
+      # Parameters
+      #   id (required) - The ID of a project
+      #   job_id (required) - The ID of the job to delete
+      # Example Request
+      #   DELETE /projects/:id/jobs/:job_id
+      delete ":id/jobs/:job_id" do
+        required_attributes! [:job_id]
+
+        project = Project.find(params[:id])
+        job     = project.jobs.find(params[:job_id])
+
+        not_found! if project.blank? || job.blank?
+        unauthorized! unless current_user.can_access_project?(project.gitlab_id)
+
+        job.destroy
       end
 
       # Retrieve all Gitlab CI projects that the user has access to
@@ -86,18 +160,19 @@ module API
         required_attributes! [:name, :gitlab_id, :gitlab_url, :ssh_url_to_repo]
 
         filtered_params = {
-          :name            => params[:name],
-          :gitlab_id       => params[:gitlab_id],
-          :gitlab_url      => params[:gitlab_url],
-          :default_ref     => params[:default_ref] || 'master',
-          :ssh_url_to_repo => params[:ssh_url_to_repo]
+          name:            params[:name],
+          gitlab_id:       params[:gitlab_id],
+          gitlab_url:      params[:gitlab_url],
+          default_ref:     params[:default_ref] || 'master',
+          ssh_url_to_repo: params[:ssh_url_to_repo]
         }
 
         project = Project.new(filtered_params)
+        project.build_missing_services
         project.build_default_job
 
         if project.save
-          present project, :with => Entities::Project
+          present project, with: Entities::Project
         else
           errors = project.errors.full_messages.join(", ")
           render_api_error!(errors, 400)
@@ -122,7 +197,7 @@ module API
           attrs = attributes_for_keys [:name, :gitlab_id, :gitlab_url, :default_ref, :ssh_url_to_repo]
 
           if project.update_attributes(attrs)
-            present project, :with => Entities::Project
+            present project, with: Entities::Project
           else
             errors = project.errors.full_messages.join(", ")
             render_api_error!(errors, 400)
@@ -164,14 +239,14 @@ module API
         unauthorized! unless current_user.can_access_project?(project.gitlab_id)
 
         options = {
-          :project_id => project.id,
-          :runner_id  => runner.id
+          project_id: project.id,
+          runner_id:  runner.id
         }
 
         runner_project = RunnerProject.new(options)
 
         if runner_project.save
-          present runner_project, :with => Entities::RunnerProject
+          present runner_project, with: Entities::RunnerProject
         else
           errors = project.errors.full_messages.join(", ")
           render_api_error!(errors, 400)
@@ -193,8 +268,8 @@ module API
         unauthorized! unless current_user.can_access_project?(project.gitlab_id)
 
         options = {
-          :project_id => project.id,
-          :runner_id  => runner.id
+          project_id: project.id,
+          runner_id:  runner.id
         }
 
         runner_project = RunnerProject.where(options).first

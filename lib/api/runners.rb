@@ -17,6 +17,18 @@ module API
         end
       end
 
+      # Delete runner
+      # Parameters:
+      #   token (required) - The unique token of runner
+      #
+      # Example Request:
+      #   GET /runners/delete
+      delete "delete" do
+        required_attributes! [:token]
+        authenticate_runner!
+        Runner.find_by_token(params[:token]).destroy
+      end
+
       # Register a new runner
       #
       # Note: This is an "internal" API called when setting up
@@ -33,10 +45,17 @@ module API
         runner =
           if params[:token] == GitlabCi::REGISTRATION_TOKEN
             # Create shared runner. Requires admin access
-            Runner.create
+            Runner.create(
+              description: params[:description],
+              tag_list: params[:tag_list],
+              is_shared: true
+            )
           elsif project = Project.find_by(token: params[:token])
             # Create a specific runner for project.
-            project.runners.create
+            project.runners.create(
+              description: params[:description],
+              tag_list: params[:tag_list]
+            )
           end
 
         return forbidden! unless runner

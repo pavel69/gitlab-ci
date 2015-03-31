@@ -4,15 +4,15 @@
   = @commit.short_sha
   - if current_user.can_manage_project?(@project.gitlab_id)
     .pull-right
-      = link_to edit_project_path(@project), class: "btn btn-default btn-small" do
+      = link_to project_jobs_path(@project), class: "btn btn-default btn-small" do
         %i.icon-edit.icon-white
-        Edit Project
+        Edit Job
 
 %p
   = link_to project_commit_path(@project, @build.commit) do
     &larr; Back to project commit
 %hr
-
+#up-build-trace
 - if @commit.matrix?
   %ul.nav.nav-tabs.append-bottom-10
     - @commit.builds_without_retry.each do |build|
@@ -66,10 +66,17 @@
         .autoscroll-container
           %button.btn.btn-success.btn-sm#autoscroll-button{:type => "button", :data => {:state => 'disabled'}} enable autoscroll
         .clearfix
+    .scroll-controls
+      = link_to '#up-build-trace', class: 'btn' do
+        %i.icon-angle-up
+      = link_to '#down-build-trace', class: 'btn' do
+        %i.icon-angle-down
+
     %pre.trace#build-trace
       %code.bash
         = preserve do
           = raw @build.trace_html
+    %div#down-build-trace
 
   .col-md-3
     - if @build.coverage
@@ -86,7 +93,7 @@
           .pull-right
             - if @build.active?
               = link_to "Cancel", cancel_project_build_path(@project, @build), class: 'btn btn-sm btn-danger'
-            - else
+            - elsif @build.commands.present?
               = link_to "Retry", retry_project_build_path(@project, @build), class: 'btn btn-sm btn-primary', method: :post
 
       - if @build.duration

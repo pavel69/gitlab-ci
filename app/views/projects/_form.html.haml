@@ -61,6 +61,13 @@
             = f.check_box :public
             %span.light Anyone can see project and builds
     .form-group
+      = f.label :shared_runners_enabled, 'Allow shared runners', class: 'control-label'
+      .col-sm-10
+        .checkbox
+          = f.label :shared_runners_enabled do
+            = f.check_box :shared_runners_enabled
+            %span.light Allow run builds on shared runners
+    .form-group
       = f.label :coverage_regex, "Test coverage parsing", class: 'control-label'
       .col-sm-10
         .input-group
@@ -74,30 +81,11 @@
             %li
               Simplecov (Ruby) -
               %code \(\d+.\d+\%\) covered
+            %li
+              pytest-cov (Python) -
+              %code \d+\%$
 
 
-
-  %fieldset
-    %legend Email notification
-    .form-group
-      = f.label :email_recipients, "Recipients", class: 'control-label'
-      .col-sm-10
-        = f.text_field :email_recipients, class: 'form-control'
-        .light Whitespace-separated list of recipient addresses
-    .form-group
-      .col-sm-2
-      .col-sm-10
-        .checkbox
-          = f.label :email_add_committer do
-            = f.check_box :email_add_committer
-            %span Add committer to recipients list
-    .form-group
-      .col-sm-2
-      .col-sm-10
-        .checkbox
-          = f.label :email_only_broken_builds do
-            = f.check_box :email_only_broken_builds
-            %span Send notification only for broken builds
 
   %fieldset
     %legend Advanced settings
@@ -118,9 +106,15 @@
       .col-sm-10
         = f.text_field :token, class: 'form-control', placeholder: 'xEeFCaDAB89'
     .form-group
+      = f.label :url, "CI project URL", class: 'control-label'
+      .col-sm-10
+        = text_field_tag :url, project_url(@project), class: 'form-control', readonly: true
+    .form-group
       = f.label :skip_refs, "Skip refs", class: 'control-label'
       .col-sm-10
-        = f.text_field :skip_refs, class: 'form-control', placeholder: 'branch1, branch2'
+        = f.text_field :skip_refs, class: 'form-control', placeholder: 'branch1, branch2, feature/*'
+        .light
+          You can specify git references to skip CI builds. Accepts strings and glob pattern syntax
 
   .form-actions
     = f.submit 'Save changes', class: 'btn btn-save'

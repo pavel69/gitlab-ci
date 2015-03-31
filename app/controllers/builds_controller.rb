@@ -27,17 +27,21 @@ class BuildsController < ApplicationController
 
     respond_to do |format|
       format.html
-      format.json {
+      format.json do
         render json: @build.to_json(methods: :trace_html)
-      }
+      end
     end
   end
 
   def retry
+    if @build.commands.blank?
+      return page_404
+    end
+    
     build = Build.retry(@build)
 
     if params[:return_to]
-      redirect_to params[:return_to]
+      redirect_to URI.parse(params[:return_to]).path
     else
       redirect_to project_build_path(project, build)
     end

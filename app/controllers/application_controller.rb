@@ -1,4 +1,5 @@
 class ApplicationController < ActionController::Base
+  rescue_from Network::UnauthorizedError, with: :invalid_token
   before_filter :default_headers
   before_filter :check_config
 
@@ -70,12 +71,23 @@ class ApplicationController < ActionController::Base
   end
 
   def check_config
+    redirect_to oauth2_help_path unless valid_config?
+  end
+
+  def valid_config?
     server = GitlabCi.config.gitlab_server
 
     if server.blank? || server.url.blank? || server.app_id.blank? || server.app_secret.blank?
-      redirect_to oauth2_help_path
+      false
+    else
+      true
     end
   rescue Settingslogic::MissingSetting, NoMethodError
-    redirect_to oauth2_help_path
+    false
+  end
+
+  def invalid_token
+    reset_session
+    redirect_to :root
   end
 end

@@ -17,7 +17,7 @@
 #  gitlab_id                :integer
 #  allow_git_fetch          :boolean          default(TRUE), not null
 #  email_recipients         :string(255)      default(""), not null
-#  email_add_committer      :boolean          default(TRUE), not null
+#  email_add_pusher         :boolean          default(TRUE), not null
 #  email_only_broken_builds :boolean          default(TRUE), not null
 #  skip_refs                :string(255)
 #  coverage_regex           :string(255)
@@ -29,8 +29,8 @@ class Project < ActiveRecord::Base
   attr_accessible :name, :path, :timeout, :token, :timeout_in_minutes,
     :default_ref, :gitlab_url, :always_build, :polling_interval,
     :public, :ssh_url_to_repo, :gitlab_id, :allow_git_fetch, :skip_refs,
-    :email_recipients, :email_add_committer, :email_only_broken_builds, :coverage_regex,
-    :jobs_attributes
+    :email_recipients, :email_add_pusher, :email_only_broken_builds, :coverage_regex,
+    :jobs_attributes, :shared_runners_enabled
 
   has_many :commits, dependent: :destroy
   has_many :builds, through: :commits, dependent: :destroy
@@ -38,6 +38,11 @@ class Project < ActiveRecord::Base
   has_many :runners, through: :runner_projects
   has_many :web_hooks, dependent: :destroy
   has_many :jobs, dependent: :destroy
+
+  # Project services
+  has_many :services, dependent: :destroy
+  has_one :slack_service, dependent: :destroy
+  has_one :mail_service, dependent: :destroy
 
   accepts_nested_attributes_for :jobs, allow_destroy: true
 
@@ -76,11 +81,13 @@ ls -la
         gitlab_url:              project.web_url,
         default_ref:             project.default_branch || 'master',
         ssh_url_to_repo:         project.ssh_url_to_repo,
-        email_add_committer:     GitlabCi.config.gitlab_ci.add_committer,
+        email_add_pusher:        GitlabCi.config.gitlab_ci.add_pusher,
         email_only_broken_builds: GitlabCi.config.gitlab_ci.all_broken_builds,
       }
 
-      Project.new(params)
+      project = Project.new(params)
+      project.build_missing_services
+      project
     end
 
     def from_gitlab(user, page, per_page, scope = :owned)
@@ -130,11 +137,15 @@ ls -la
   end
 
   def email_notification?
-    email_add_committer || email_recipients.present?
+    email_add_pusher || email_recipients.present?
   end
 
   def web_hooks?
     web_hooks.any?
+  end
+
+  def services?
+    services.any?
   end
 
   def timeout_in_minutes
@@ -147,7 +158,11 @@ ls -la
 
   def skip_ref?(ref_name)
     if skip_refs.present?
-      skip_refs.delete(" ").split(",").include?(ref_name)
+      skip_refs.delete(" ").split(",").each do |ref|
+        return true if File.fnmatch(ref, ref_name)
+      end
+
+      false
     else
       false
     end
@@ -177,5 +192,35 @@ ls -la
     url.sub(/^https?:\/\//) do |prefix|
       prefix + auth
     end
+  end
+
+  def available_services_names
+    %w(slack mail)
+  end
+
+  def build_missing_services
+    available_services_names.each do |service_name|
+      service = services.find { |service| service.to_param == service_name }
+
+      # If service is available but missing in db
+      # we should create an instance. Ex `create_gitlab_ci_service`
+      service = self.send :"create_#{service_name}_service" if service.nil?
+    end
+  end
+
+  def execute_services(data)
+    services.each do |service|
+
+      # Call service hook only if it is active
+      begin
+        service.execute(data) if service.active
+      rescue => e
+        logger.error(e)
+      end
+    end
+  end
+
+  def setup_finished?
+    commits.any?
   end
 end

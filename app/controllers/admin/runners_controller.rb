@@ -13,7 +13,7 @@ class Admin::RunnersController < Admin::ApplicationController
   end
 
   def update
-    @runner.update_attributes(params[:runner])
+    @runner.update_attributes(runner_params)
 
     respond_to do |format|
       format.js
@@ -25,6 +25,22 @@ class Admin::RunnersController < Admin::ApplicationController
     @runner.destroy
 
     redirect_to admin_runners_path
+  end
+
+  def resume
+    if @runner.update_attributes(active: true)
+      redirect_to admin_runners_path, notice: 'Runner was successfully updated.'
+    else
+      redirect_to admin_runners_path, alert: 'Runner was not updated.'
+    end
+  end
+
+  def pause
+    if @runner.update_attributes(active: false)
+      redirect_to admin_runners_path, notice: 'Runner was successfully updated.'
+    else
+      redirect_to admin_runners_path, alert: 'Runner was not updated.'
+    end
   end
 
   def assign_all
@@ -39,5 +55,9 @@ class Admin::RunnersController < Admin::ApplicationController
 
   def runner
     @runner ||= Runner.find(params[:id])
+  end
+
+  def runner_params
+    params.require(:runner).permit(:token, :description, :tag_list, :contacted_at, :active)
   end
 end

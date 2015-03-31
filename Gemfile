@@ -8,7 +8,7 @@ def linux_only(require_as)
   RUBY_PLATFORM.include?('linux') && require_as
 end
 
-gem 'rails', '4.0.10'
+gem 'rails', '4.1.9'
 gem 'protected_attributes'
 gem 'activerecord-deprecated_finders'
 gem 'activerecord-session_store'
@@ -28,11 +28,11 @@ gem 'settingslogic'
 gem "unicorn", "~> 4.8.2"
 
 # Haml
-gem 'haml-rails'
+gem 'haml-rails','~> 0.5.3'
 
 # Background jobs
 gem 'slim'
-gem 'sinatra', :require => nil
+gem 'sinatra', require: nil
 gem 'sidekiq'
 
 # Scheduled
@@ -58,6 +58,12 @@ gem 'grape'
 gem 'grape-entity'
 gem 'virtus', '1.0.1'
 
+# Default values for AR models
+gem "default_value_for", "~> 3.0.0"
+
+# Slack integration
+gem "slack-notifier", "~> 1.0.0"
+
 # Other
 gem 'rake'
 gem 'foreman'
@@ -68,7 +74,6 @@ gem 'sass-rails',   '~> 4.0.0'
 gem 'coffee-rails', '~> 4.0.0'
 
 gem 'uglifier', '>= 1.0.3'
-gem "therubyracer"
 gem 'bootstrap-sass', '~> 3.0'
 gem "font-awesome-rails", '~> 3.2'
 gem 'turbolinks'
@@ -77,20 +82,24 @@ gem 'nprogress-rails'
 
 
 group :development do
+  gem 'brakeman', require: false
   gem 'rack-mini-profiler', require: false
   gem 'annotate'
   gem 'quiet_assets'
   gem "letter_opener"
+  gem "spring-commands-rspec"
 end
 
 
 group :development, :test do
+  gem 'minitest'
   gem 'pry'
   gem 'rspec-rails'
   gem 'capybara'
-  gem 'poltergeist'
+  gem 'poltergeist', '~> 1.5.1'
   gem 'factory_girl_rails'
   gem "ffaker"
+  gem "byebug"
 
   gem 'shoulda-matchers'
   gem 'guard-rspec'
@@ -100,7 +109,7 @@ group :development, :test do
 
   gem "simplecov", require: false
   gem 'coveralls', require: false
-  gem 'minitest', '4.3.2'
+  gem 'rubocop', '0.28.0', require: false
 end
 
 group :test do

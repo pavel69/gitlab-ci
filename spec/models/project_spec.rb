@@ -17,7 +17,7 @@
 #  gitlab_id                :integer
 #  allow_git_fetch          :boolean          default(TRUE), not null
 #  email_recipients         :string(255)      default(""), not null
-#  email_add_committer      :boolean          default(TRUE), not null
+#  email_add_pusher         :boolean          default(TRUE), not null
 #  email_only_broken_builds :boolean          default(TRUE), not null
 #  skip_refs                :string(255)
 #  coverage_regex           :string(255)
@@ -63,45 +63,45 @@ describe Project do
 
   describe '#email_notification?' do
     it do
-      project = FactoryGirl.create :project, email_add_committer: true
+      project = FactoryGirl.create :project, email_add_pusher: true
       project.email_notification?.should == true
     end
 
     it do
-      project = FactoryGirl.create :project, email_add_committer: false, email_recipients: 'test tesft'
+      project = FactoryGirl.create :project, email_add_pusher: false, email_recipients: 'test tesft'
       project.email_notification?.should == true
     end
 
     it do
-      project = FactoryGirl.create :project, email_add_committer: false, email_recipients: ''
+      project = FactoryGirl.create :project, email_add_pusher: false, email_recipients: ''
       project.email_notification?.should == false
     end
   end
 
   describe '#broken_or_success?' do
     it {
-      project = FactoryGirl.create :project, email_add_committer: true
+      project = FactoryGirl.create :project, email_add_pusher: true
       project.stub(:broken?).and_return(true)
       project.stub(:success?).and_return(true)
       project.broken_or_success?.should == true
     }
 
     it {
-      project = FactoryGirl.create :project, email_add_committer: true
+      project = FactoryGirl.create :project, email_add_pusher: true
       project.stub(:broken?).and_return(true)
       project.stub(:success?).and_return(false)
       project.broken_or_success?.should == true
     }
 
     it {
-      project = FactoryGirl.create :project, email_add_committer: true
+      project = FactoryGirl.create :project, email_add_pusher: true
       project.stub(:broken?).and_return(false)
       project.stub(:success?).and_return(true)
       project.broken_or_success?.should == true
     }
 
     it {
-      project = FactoryGirl.create :project, email_add_committer: true
+      project = FactoryGirl.create :project, email_add_pusher: true
       project.stub(:broken?).and_return(false)
       project.stub(:success?).and_return(false)
       project.broken_or_success?.should == false
@@ -131,5 +131,21 @@ describe Project do
     it { should include(project.token) }
     it { should include('gitlab-ci-token') }
     it { should include(project.gitlab_url[7..-1]) }
+  end
+
+  describe "#skip_ref?" do
+    let(:project) { FactoryGirl.create(:project, skip_refs: "master, develop, feature/*") }
+
+    it 'returns true when item is not in list' do
+      expect(project.skip_ref?('someotherstring')).to eq false
+    end
+
+    it 'accepts string values' do
+      expect(project.skip_ref?('master')).to eq true
+    end
+
+    it 'accepts glob pattern syntax' do
+      expect(project.skip_ref?('feature/some_feature')).to eq true
+    end
   end
 end

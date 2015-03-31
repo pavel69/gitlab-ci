@@ -6,7 +6,7 @@ this should be the highest numbered stable branch (example shown below).
 
 If this is unclear check the [GitLab Blog](http://blog.gitlab.org/) for installation guide links by version.
 
-## GitLab CI 5.2 requires GitLab 7.5 or newer
+## GitLab CI 7.9 requires GitLab 7.9 or newer
 
 # Setup:
 
@@ -19,9 +19,9 @@ up-to-date and install it.
     sudo apt-get upgrade
 
 **Note:**
-During this installation some files will need to be edited manually. If 
-you are familiar with vim set it as default editor with the commands 
-below. If you are not familiar with vim please skip this and keep using 
+During this installation some files will need to be edited manually. If
+you are familiar with vim set it as default editor with the commands
+below. If you are not familiar with vim please skip this and keep using
 the default editor.
 
     # Install vim
@@ -30,8 +30,8 @@ the default editor.
 
 Install the required packages:
 
-    sudo apt-get install wget curl gcc checkinstall libxml2-dev libxslt-dev libcurl4-openssl-dev libreadline6-dev libc6-dev libssl-dev libmysql++-dev make build-essential zlib1g-dev openssh-server git-core libyaml-dev postfix libpq-dev libicu-dev openssl
-    sudo apt-get install redis-server 
+    sudo apt-get install wget curl gcc checkinstall libxml2-dev libxslt-dev libcurl4-openssl-dev libreadline6-dev libc6-dev libssl-dev libmysql++-dev make build-essential zlib1g-dev openssh-server git-core libyaml-dev postfix libpq-dev libicu-dev openssl nodejs
+    sudo apt-get install redis-server
 
 # 2. Ruby
 
@@ -74,10 +74,10 @@ You can use either MySQL or PostgreSQL.
 
     # Grant proper permissions to the MySQL User
     mysql> GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON `gitlab_ci_production`.* TO 'gitlab_ci'@'localhost';
-    
+
     # Logout MYSQL
     mysql> exit;
-    
+
 ### PostgreSQL
 
     # Install the database packages
@@ -98,7 +98,7 @@ You can use either MySQL or PostgreSQL.
     # Try connecting to the new database with the new user
     sudo -u gitlab_ci -H psql -d gitlab_ci_production
 
-## 5. Get code 
+## 5. Get code
 
     cd /home/gitlab_ci/
 
@@ -106,7 +106,7 @@ You can use either MySQL or PostgreSQL.
 
     cd gitlab-ci
 
-    sudo -u gitlab_ci -H git checkout 5-2-stable
+    sudo -u gitlab_ci -H git checkout 7-9-stable
 
 ## 6. Setup application
 
@@ -128,7 +128,7 @@ You can use either MySQL or PostgreSQL.
     sudo chmod -R u+rwX  tmp/pids/
 
 ### Install gems
- 
+
     # For MySQL (note, the option says "without ... postgres")
     sudo -u gitlab_ci -H bundle install --without development test postgres --deployment
 
@@ -148,10 +148,10 @@ You can use either MySQL or PostgreSQL.
 
     # Setup tables
     sudo -u gitlab_ci -H bundle exec rake setup RAILS_ENV=production
-    
+
     # Setup schedules
     sudo -u gitlab_ci -H bundle exec whenever -w RAILS_ENV=production
-   
+
 
 ## 7. Install Init Script
 
@@ -200,18 +200,35 @@ Make sure to edit the config file to match your setup:
 
     sudo /etc/init.d/nginx start
 
+# 9. GitLab OAuth2 application
 
-# 9. Runners
+
+Go to the admin area of GitLab, to the `Application` section. Create an application for the GitLab CI
+For callback URL use: `http://ci.example.com/user_sessions/callback` if you use http, or `https://ci.example.com/user_sessions/callback` if you use https.
+
+When `app_id` and `app_secret` are generated add them to the GitLab CI config:
+
+```
+production:
+  gitlab_server:
+    url: 'http://gitlab.example.com'
+    app_id: XXXXXX
+    app_secret: XXXXXX
+
+```
+
+
+# 10. Runners
 
 
 Now you need Runners to process your builds.
-Checkout [runner repository](https://gitlab.com/gitlab-org/gitlab-ci-runner/blob/master/README.md) for setup info.
+Checkout the #{link_to 'GitLab Runner section', 'https://about.gitlab.com/gitlab-ci/#gitlab-runner', target: '_blank'} to install it
 
 # Done!
 
 
 Visit YOUR_SERVER for your first GitLab CI login.
-You should use your GitLab credentials in order to login
+You will be asked to authorize with your GitLab credentials.
 
 **Enjoy!**
 

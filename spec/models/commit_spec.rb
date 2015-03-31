@@ -16,7 +16,7 @@ require 'spec_helper'
 
 describe Commit do
   let(:project) { FactoryGirl.create :project }
-  let(:commit) { FactoryGirl.create :commit }
+  let(:commit) { FactoryGirl.create :commit, project: project }
   let(:commit_with_project) { FactoryGirl.create :commit, project: project }
 
   it { should belong_to(:project) }
@@ -56,9 +56,9 @@ describe Commit do
     end
 
     it "creates new build" do
-      commit.builds.count.should == 2
+      expect(commit.builds.count(:all)).to eq 2
       commit.retry
-      commit.builds.count.should == 3
+      expect(commit.builds.count(:all)).to eq 3
     end
   end
 
@@ -79,43 +79,41 @@ describe Commit do
   describe :project_recipients do
 
     context 'always sending notification' do
-      it 'should return git_author_email as only recipient when no additional recipients are given' do
+      it 'should return commit_pusher_email as only recipient when no additional recipients are given' do
         project = FactoryGirl.create :project,
-          email_add_committer: true,
+          email_add_pusher: true,
           email_recipients: ''
         commit =  FactoryGirl.create :commit, project: project
-        expected = 'git_author_email'
-        commit.stub(:git_author_email) { expected }
+        expected = 'commit_pusher_email'
+        commit.stub(:push_data) { { user_email: expected } }
         commit.project_recipients.should == [expected]
       end
 
-      it 'should return git_author_email and additional recipients' do
+      it 'should return commit_pusher_email and additional recipients' do
         project = FactoryGirl.create :project,
-          email_add_committer: true,
+          email_add_pusher: true,
           email_recipients: 'rec1 rec2'
         commit = FactoryGirl.create :commit, project: project
-        expected = 'git_author_email'
-        commit.stub(:git_author_email) { expected }
+        expected = 'commit_pusher_email'
+        commit.stub(:push_data) { { user_email: expected } }
         commit.project_recipients.should == ['rec1', 'rec2', expected]
       end
 
       it 'should return recipients' do
         project = FactoryGirl.create :project,
-          email_add_committer: false,
+          email_add_pusher: false,
           email_recipients: 'rec1 rec2'
         commit = FactoryGirl.create :commit, project: project
-        expected = 'git_author_email'
-        commit.stub(:git_author_email) { expected }
         commit.project_recipients.should == ['rec1', 'rec2']
       end
 
       it 'should return unique recipients only' do
         project = FactoryGirl.create :project,
-          email_add_committer: true,
+          email_add_pusher: true,
           email_recipients: 'rec1 rec1 rec2'
         commit = FactoryGirl.create :commit, project: project
         expected = 'rec2'
-        commit.stub(:git_author_email) { expected }
+        commit.stub(:push_data) { { user_email: expected } }
         commit.project_recipients.should == ['rec1', 'rec2']
       end
     end
@@ -158,5 +156,22 @@ describe Commit do
     subject { commit_with_project.gitlab? }
 
     it { should eq(project.gitlab?) }
+  end
+
+  describe "create_deploy_builds" do
+    before do
+      job = FactoryGirl.create :job, project: project
+      job1 = FactoryGirl.create :job, project: project
+      FactoryGirl.create :job, job_type: :deploy, project: project
+      FactoryGirl.create :build, commit: commit, status: :success, job: job
+      FactoryGirl.create :build, commit: commit, status: :success, job: job1
+      project.reload
+    end
+
+    it "creates new build for deploy" do
+      commit.create_deploy_builds(commit.ref)
+
+      commit.builds.size.should == 3
+    end
   end
 end

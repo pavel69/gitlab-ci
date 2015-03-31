@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150113001835) do
+ActiveRecord::Schema.define(version: 20150324001227) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -58,14 +58,16 @@ ActiveRecord::Schema.define(version: 20150113001835) do
   add_index "commits", ["sha"], name: "index_commits_on_sha", using: :btree
 
   create_table "jobs", force: true do |t|
-    t.integer  "project_id",                     null: false
+    t.integer  "project_id",                          null: false
     t.text     "commands"
-    t.boolean  "active",         default: true,  null: false
+    t.boolean  "active",         default: true,       null: false
     t.datetime "created_at"
     t.datetime "updated_at"
     t.string   "name"
-    t.boolean  "build_branches", default: true,  null: false
-    t.boolean  "build_tags",     default: false, null: false
+    t.boolean  "build_branches", default: true,       null: false
+    t.boolean  "build_tags",     default: false,      null: false
+    t.string   "job_type",       default: "parallel"
+    t.string   "refs"
   end
 
   add_index "jobs", ["project_id"], name: "index_jobs_on_project_id", using: :btree
@@ -85,10 +87,11 @@ ActiveRecord::Schema.define(version: 20150113001835) do
     t.integer  "gitlab_id"
     t.boolean  "allow_git_fetch",          default: true,  null: false
     t.string   "email_recipients",         default: "",    null: false
-    t.boolean  "email_add_committer",      default: true,  null: false
+    t.boolean  "email_add_pusher",         default: true,  null: false
     t.boolean  "email_only_broken_builds", default: true,  null: false
     t.string   "skip_refs"
     t.string   "coverage_regex"
+    t.boolean  "shared_runners_enabled",   default: false
   end
 
   create_table "runner_projects", force: true do |t|
@@ -106,7 +109,22 @@ ActiveRecord::Schema.define(version: 20150113001835) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.string   "description"
+    t.datetime "contacted_at"
+    t.boolean  "active",       default: true,  null: false
+    t.boolean  "is_shared",    default: false
   end
+
+  create_table "services", force: true do |t|
+    t.string   "type"
+    t.string   "title"
+    t.integer  "project_id",                 null: false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.boolean  "active",     default: false, null: false
+    t.text     "properties"
+  end
+
+  add_index "services", ["project_id"], name: "index_services_on_project_id", using: :btree
 
   create_table "sessions", force: true do |t|
     t.string   "session_id", null: false

@@ -31,7 +31,7 @@ class Commit < ActiveRecord::Base
   end
 
   def last_build
-    builds.last
+    builds.order(:id).last
   end
 
   def retry
@@ -92,18 +92,22 @@ class Commit < ActiveRecord::Base
 
   def project_recipients
     recipients = project.email_recipients.split(' ')
-    recipients << git_author_email if project.email_add_committer?
+
+    if project.email_add_pusher? && push_data[:user_email].present?
+      recipients << push_data[:user_email]
+    end
+
     recipients.uniq
   end
 
   def create_builds
-    project.jobs.where(build_branches: true).active.map do |job|
+    project.jobs.where(build_branches: true).active.parallel.map do |job|
       create_build_from_job(job)
     end
   end
 
   def create_builds_for_tag(ref = '')
-    project.jobs.where(build_tags: true).active.map do |job|
+    project.jobs.where(build_tags: true).active.parallel.map do |job|
       create_build_from_job(job, ref)
     end
   end
@@ -130,6 +134,16 @@ class Commit < ActiveRecord::Base
 
   def retried_builds
     @retried_builds ||= (builds - builds_without_retry)
+  end
+
+  def create_deploy_builds(ref)
+    if success? && !last_build.job.deploy?
+      project.jobs.deploy.active.each do |job|
+        if job.run_for_ref?(ref)
+          create_build_from_job(job)
+        end
+      end
+    end
   end
 
   def status
@@ -183,8 +197,8 @@ class Commit < ActiveRecord::Base
   end
 
   def coverage
-    if project.coverage_enabled? && builds.size == 1
-      builds.first.coverage
+    if project.coverage_enabled? && builds.size > 0
+      builds.last.coverage
     end
   end
 

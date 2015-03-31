@@ -45,6 +45,20 @@ describe API::API do
       it { response.status.should == 201 }
     end
 
+    describe "should create a runner with description" do
+      before { post api("/runners/register"), token: GitlabCi::REGISTRATION_TOKEN, description: "server.hostname" }
+
+      it { response.status.should == 201 }
+      it { Runner.first.description.should == "server.hostname" }
+    end
+
+    describe "should create a runner with tags" do
+      before { post api("/runners/register"), token: GitlabCi::REGISTRATION_TOKEN, tag_list: "tag1, tag2" }
+
+      it { response.status.should == 201 }
+      it { Runner.first.tag_list.sort.should == ["tag1", "tag2"] }
+    end
+
     describe "should create a runner if project token provided" do
       let(:project) { FactoryGirl.create(:project) }
       before { post api("/runners/register"), token: project.token }
@@ -64,5 +78,13 @@ describe API::API do
 
       response.status.should == 400
     end
+  end
+
+  describe "DELETE /runners/delete" do
+    let!(:runner) { FactoryGirl.create(:runner) }
+    before { delete api("/runners/delete"), token: runner.token }
+
+    it { response.status.should == 200 }
+    it { Runner.count.should == 0 }
   end
 end

@@ -2,11 +2,12 @@
 #
 # Table name: runners
 #
-#  id          :integer          not null, primary key
-#  token       :string(255)
-#  created_at  :datetime
-#  updated_at  :datetime
-#  description :string(255)
+#  id           :integer          not null, primary key
+#  token        :string(255)
+#  created_at   :datetime
+#  updated_at   :datetime
+#  contacted_at :datetime
+#  description  :string(255)
 #
 
 class Runner < ActiveRecord::Base
@@ -16,12 +17,12 @@ class Runner < ActiveRecord::Base
 
   has_one :last_build, ->() { order('id DESC') }, class_name: 'Build'
 
-  attr_accessible :token, :description, :tag_list
-
   before_validation :set_default_values
 
-  scope :specific, ->() { where(id: RunnerProject.select(:runner_id)) }
-  scope :shared, ->() { where.not(id: RunnerProject.select(:runner_id)) }
+  scope :specific, ->() { where(is_shared: false) }
+  scope :shared, ->() { where(is_shared: true) }
+  scope :active, ->() { where(active: true) }
+  scope :paused, ->() { where(active: false) }
 
   acts_as_taggable
 
@@ -29,7 +30,9 @@ class Runner < ActiveRecord::Base
     self.token = SecureRandom.hex(15) if self.token.blank?
   end
 
-  def assign_to(project, current_user)
+  def assign_to(project, current_user = nil)
+    self.is_shared = false if shared?
+    self.save
     project.runner_projects.create!(runner_id: self.id)
   end
 
@@ -40,7 +43,11 @@ class Runner < ActiveRecord::Base
   end
 
   def shared?
-    runner_projects.blank?
+    is_shared
+  end
+
+  def specific?
+    !shared?
   end
 
   def only_for?(project)
