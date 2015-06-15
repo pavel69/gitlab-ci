@@ -44,7 +44,7 @@ class SlackMessage
   def attachment_message
     out = "<#{RoutesHelper.project_url(project)}|#{project_name}>: "
     if commit.matrix?
-      out << "Commit <#{RoutesHelper.project_commit_url(project, commit)}|\##{commit.id}> "
+      out << "Commit <#{RoutesHelper.project_ref_commit_url(project, commit.ref, commit.sha)}|\##{commit.id}> "
     else
       build = commit.builds_without_retry.first
       out << "Build <#{RoutesHelper.project_build_url(project, build)}|\##{build.id}> "
@@ -69,19 +69,11 @@ class SlackMessage
   end
 
   def commit_sha_link
-    if commit.project.gitlab?
-      "#{project.gitlab_url}/commit/#{commit.sha}"
-    else
-      commit.ref
-    end
+    "#{project.gitlab_url}/commit/#{commit.sha}"
   end
 
   def commit_ref_link
-    if commit.project.gitlab?
-      "#{project.gitlab_url}/commits/#{commit.ref}"
-    else
-      commit.ref
-    end
+    "#{project.gitlab_url}/commits/#{commit.ref}"
   end
 
   def attachment_color

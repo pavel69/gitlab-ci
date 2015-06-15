@@ -2,12 +2,15 @@ class Admin::RunnersController < Admin::ApplicationController
   before_filter :runner, except: :index
 
   def index
-    @runners = Runner.page(params[:page]).per(30)
+    @runners = Runner.order('id DESC')
+    @runners = @runners.search(params[:search]) if params[:search].present?
+    @runners = @runners.page(params[:page]).per(30)
   end
 
   def show
     @builds = @runner.builds.order('id DESC').first(30)
     @projects = Project.all
+    @projects = @projects.search(params[:search]) if params[:search].present?
     @projects = @projects.where("projects.id NOT IN (?)", @runner.projects.pluck(:id)) if @runner.projects.any?
     @projects = @projects.page(params[:page]).per(30)
   end

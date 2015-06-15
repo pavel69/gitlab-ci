@@ -15,11 +15,19 @@ class CreateCommitService
       return false
     end
 
+    if params[:commits] && params[:commits].last[:message] =~ /(\[ci skip\])/
+      return false
+    end
+
+    if origin_ref.start_with?('refs/tags/') && !project.create_commit_for_tag?(ref)
+      return false
+    end
+
     if project.skip_ref?(ref)
       return false
     end
 
-    commit = project.commits.find_by(sha: sha)
+    commit = project.commits.find_by_sha_and_ref(sha, ref)
 
     # Create commit if not exists yet
     unless commit
@@ -46,6 +54,10 @@ class CreateCommitService
       commit.create_builds_for_tag(ref)
     else
       commit.create_builds
+    end
+
+    if commit.builds.empty?
+      commit.create_deploy_builds(ref)
     end
 
     commit

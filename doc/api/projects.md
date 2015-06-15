@@ -26,6 +26,7 @@ Returns:
     "token" : "iPWx6WM4lhHNedGfBpPJNP",
     "default_ref" : "master",
     "gitlab_url" : "http://demo.gitlabhq.com/gitlab/gitlab-shell",
+    "path" : "gitlab/gitlab-shell",
     "always_build" : false,
     "polling_interval" : null,
     "public" : false,
@@ -39,6 +40,7 @@ Returns:
     "token" : "iPWx6WM4lhHNedGfBpPJNP",
     "default_ref" : "master",
     "gitlab_url" : "http://demo.gitlabhq.com/gitlab/gitlab-shell",
+    "path" : "gitlab/gitlab-shell",
     "always_build" : false,
     "polling_interval" : null,
     "public" : false,
@@ -67,6 +69,7 @@ Returns:
     "token" : "iPWx6WM4lhHNedGfBpPJNP",
     "default_ref" : "master",
     "gitlab_url" : "http://demo.gitlabhq.com/gitlab/gitlab-shell",
+    "path" : "gitlab/gitlab-shell",
     "always_build" : false,
     "polling_interval" : null,
     "public" : false,
@@ -97,7 +100,7 @@ Parameters:
 
   * `name` (required) - The name of the project
   * `gitlab_id` (required) - The ID of the project on the Gitlab instance
-  * `gitlab_url` (required) - The web url of the project on the Gitlab instance
+  * `path` (required) - The gitlab project path
   * `ssh_url_to_repo` (required) - The gitlab SSH url to the repo
   * `default_ref` (optional) - The branch to run on (default to `master`)
 
@@ -112,7 +115,7 @@ Parameters:
 
   * `name` - The name of the project
   * `gitlab_id` - The ID of the project on the Gitlab instance
-  * `gitlab_url` - The web url of the project on the Gitlab instance
+  * `path` - The gitlab project path
   * `ssh_url_to_repo` - The gitlab SSH url to the repo
   * `default_ref` - The branch to run on (default to `master`)
 
@@ -161,7 +164,7 @@ Parameters:
 
   * `id` (required) - The ID of the Gitlab CI project
 
-### Add a Job to a Project
+### Add a parallel Job to a Project
 
 Adds a Job to a Gitlab CI Project (only via
 authorized user).
@@ -173,10 +176,26 @@ Parameters:
   * `id` (required) - The ID of the Gitlab CI project
   * `name` (required) - The name of the Job to add
   * `commands` (required) - The script commands of the job
-  *  `active` (optional) - The command is active of not
-  *  `build_branches` (optional) - Trigger commit builds
-  *  `build_tags` (optional) - Trigger tag builds
-  *  `tags` (optional) - The tags associated with this job
+  * `active` (optional) - The command is active of not
+  * `build_branches` (optional) - Trigger commit builds
+  * `build_tags` (optional) - Trigger tag builds
+  * `tags` (optional) - The tags associated with this job
+
+### Add a deploy Job to a Project
+
+Adds a deploy Job to a Gitlab CI Project (only via
+authorized user).
+
+    POST /projects/:id/deploy_jobs
+
+Parameters:
+
+  * `id` (required) - The ID of the Gitlab CI project
+  * `name` (required) - The name of the Job to add
+  * `commands` (required) - The script commands of the job
+  * `active` (optional) - The command is active of not
+  * `refs` (optional) - The list of refs
+  * `tags` (optional) - The tags associated with this job
 
 ### Remove a Job from a Project
 

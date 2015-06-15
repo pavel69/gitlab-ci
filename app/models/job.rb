@@ -11,9 +11,14 @@
 #  name           :string(255)
 #  build_branches :boolean          default(TRUE), not null
 #  build_tags     :boolean          default(FALSE), not null
+#  job_type       :string(255)      default("parallel")
+#  refs           :string(255)
+#  deleted_at     :datetime
 #
 
 class Job < ActiveRecord::Base
+  acts_as_paranoid
+  
   belongs_to :project
   has_many :builds
 
@@ -24,13 +29,21 @@ class Job < ActiveRecord::Base
   scope :parallel, ->(){ where(job_type: "parallel") }
   scope :deploy, ->(){ where(job_type: "deploy") }
 
-  validate :refs, length: { maximum: 100 }
-  
+  validate :refs, length: { maximum: 255 }
+
   def deploy?
     job_type == "deploy"
   end
 
   def run_for_ref?(ref)
-    refs.blank? || refs.split(",").map{|ref| ref.strip}.include?(ref)
+    if refs.present?
+      refs.split(",").map(&:strip).each do |refs_val|
+        return true if File.fnmatch(refs_val, ref)
+      end
+
+      false
+    else
+      true
+    end
   end
 end

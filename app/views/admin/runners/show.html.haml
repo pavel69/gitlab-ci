@@ -1,11 +1,15 @@
-%h4
-  - if @runner.shared?
-    %span.runner-state.runner-state-shared
-      Shared
-  - else
-    %span.runner-state.runner-state-specific
-      Specific
-  Runner ##{@runner.id}
+= content_for :title do
+  %h3.project-title
+    Runner ##{@runner.id}
+    .pull-right
+      - if @runner.shared?
+        %span.runner-state.runner-state-shared
+          Shared
+      - else
+        %span.runner-state.runner-state-specific
+          Specific
+
+  
 
 - if @runner.shared?
   .bs-callout.bs-callout-success
@@ -66,6 +70,14 @@
                 title: 'Assign runner to all projects',
                 method: :put
 
+      %tr
+        %td
+          = form_tag admin_runner_path(@runner), class: 'form-inline', method: :get do
+            .form-group
+              = search_field_tag :search, params[:search], class: 'form-control'
+            = submit_tag 'Search', class: 'btn'
+
+        %td
       - @projects.each do |project|
         %tr
           %td

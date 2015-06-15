@@ -4,20 +4,15 @@
 #
 #  id          :integer          not null, primary key
 #  project_id  :integer
-#  ref         :string(255)
 #  status      :string(255)
 #  finished_at :datetime
 #  trace       :text
 #  created_at  :datetime
 #  updated_at  :datetime
-#  sha         :string(255)
 #  started_at  :datetime
-#  tmp_file    :string(255)
-#  before_sha  :string(255)
-#  push_data   :text
 #  runner_id   :integer
-#  coverage    :float
 #  commit_id   :integer
+#  coverage    :float
 #  commands    :text
 #  job_id      :integer
 #
@@ -28,10 +23,7 @@ class Build < ActiveRecord::Base
   belongs_to :commit
   belongs_to :project
   belongs_to :runner
-  belongs_to :job
-
-  attr_accessible :status, :finished_at, :trace, :started_at, :runner_id,
-    :commit_id, :coverage, :commands, :job_id
+  belongs_to :job, -> { with_deleted }
 
   validates :commit, presence: true
   validates :status, presence: true
@@ -82,7 +74,6 @@ class Build < ActiveRecord::Base
 
       new_build.job_id = build.job_id
       new_build.commit_id = build.commit_id
-      new_build.ref = build.ref
       new_build.project_id = build.project_id
       new_build.save
       new_build
@@ -118,7 +109,10 @@ class Build < ActiveRecord::Base
         WebHookService.new.build_end(build)
       end
 
-      build.commit.create_deploy_builds(build.ref)
+      if build.commit.success? && !(build.job && build.job.deploy?)
+        build.commit.create_deploy_builds(build.ref)
+      end
+
       project.execute_services(build)
 
       if project.coverage_enabled?
@@ -133,7 +127,7 @@ class Build < ActiveRecord::Base
     state :canceled, value: 'canceled'
   end
 
-  delegate :sha, :short_sha, :before_sha,
+  delegate :sha, :short_sha, :before_sha, :ref,
     to: :commit, prefix: false
 
   def trace_html
@@ -216,16 +210,6 @@ class Build < ActiveRecord::Base
   def job_name
     if job
       job.name
-    end
-  end
-
-  def ref
-    build_ref = read_attribute(:ref)
-
-    if build_ref.present?
-      build_ref
-    else
-      commit.ref
     end
   end
 

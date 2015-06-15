@@ -1,5 +1,4 @@
-
-# How you build script is run
+# How your build script is run
 
 The runner runs the line below before it runs the commands in your build script:
 
@@ -25,6 +24,10 @@ The build command is run from [GitlabCi::Build#command](https://gitlab.com/gitla
 + [Build script GitLab CE](build_script_gitlab_ce.md)
 + [Build script for Sencha deploy PhoneGapBuild](build_script_sencha_deploy_phonegapbuild.md)
 
-# Configuring a runner example
+# Configuring runner examples
 
-+ [Configure a runner to run the GitLab CE test suite](configure_a_runner_to_run_the_gitlab_ce_test_suite.md)
++ [For Ruby](configure/ruby.md)
++ We welcome contributions of examples for other environments.
+
+Please see [cookbook-gitlab-test](https://gitlab.com/gitlab-org/cookbook-gitlab-test/blob/master/README.md)
+for instructions how to prepare a server to run CI tests for GitLab.

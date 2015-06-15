@@ -6,8 +6,10 @@
 #  token        :string(255)
 #  created_at   :datetime
 #  updated_at   :datetime
-#  contacted_at :datetime
 #  description  :string(255)
+#  contacted_at :datetime
+#  active       :boolean          default(TRUE), not null
+#  is_shared    :boolean          default(FALSE)
 #
 
 class Runner < ActiveRecord::Base
@@ -25,6 +27,11 @@ class Runner < ActiveRecord::Base
   scope :paused, ->() { where(active: false) }
 
   acts_as_taggable
+
+  def self.search(query)
+    where('LOWER(runners.token) LIKE :query OR LOWER(runners.description) like :query',
+          query: "%#{query.try(:downcase)}%")
+  end
 
   def set_default_values
     self.token = SecureRandom.hex(15) if self.token.blank?
@@ -44,6 +51,10 @@ class Runner < ActiveRecord::Base
 
   def shared?
     is_shared
+  end
+
+  def belongs_to_one_project?
+    runner_projects.count == 1
   end
 
   def specific?

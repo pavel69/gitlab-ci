@@ -1,15 +1,15 @@
 %h4.page-title
-  = @project.name
+  = link_to @project.name, @project
   @
   = @commit.short_sha
-  - if current_user.can_manage_project?(@project.gitlab_id)
+  - if current_user && current_user.can_manage_project?(@project.gitlab_id)
     .pull-right
       = link_to project_jobs_path(@project), class: "btn btn-default btn-small" do
         %i.icon-edit.icon-white
         Edit Job
 
 %p
-  = link_to project_commit_path(@project, @build.commit) do
+  = link_to project_ref_commit_path(@project, @commit.ref, @commit.sha) do
     &larr; Back to project commit
 %hr
 #up-build-trace
@@ -52,7 +52,7 @@
           .pull-right
             %span
               %i.icon-time
-              #{distance_of_time_in_words @build.duration}
+              #{duration_in_words(@build.finished_at, @build.started_at)}
 
       .clearfix
         = @build.status
@@ -89,7 +89,7 @@
     .build-widget
       %h4.title
         Build
-        - if current_user.can_manage_project?(@project.gitlab_id)
+        - if current_user && current_user.has_developer_access?(@project.gitlab_id)
           .pull-right
             - if @build.active?
               = link_to "Cancel", cancel_project_build_path(@project, @build), class: 'btn btn-sm btn-danger'
@@ -99,7 +99,7 @@
       - if @build.duration
         %p
           %span.attr-name Duration:
-          #{distance_of_time_in_words @build.duration}
+          #{duration_in_words(@build.finished_at, @build.started_at)}
       %p
         %span.attr-name Created:
         #{time_ago_in_words(@build.created_at)} ago

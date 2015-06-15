@@ -14,15 +14,6 @@ describe "Admin Projects" do
       visit admin_projects_path
     end
 
-    it { page.should have_content "Manage Projects" }
-  end
-
-  describe "GET /admin/projects/:id" do
-    before do
-      visit admin_project_path(project)
-    end
-
-    it { page.should have_content "Project info" }
-    it { page.should have_content project.name }
+    it { page.should have_content "Projects" }
   end
 end

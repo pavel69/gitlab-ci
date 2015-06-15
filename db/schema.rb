@@ -11,24 +11,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150324001227) do
+ActiveRecord::Schema.define(version: 20150508011360) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
   create_table "builds", force: true do |t|
     t.integer  "project_id"
-    t.string   "ref"
     t.string   "status"
     t.datetime "finished_at"
     t.text     "trace"
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.string   "sha"
     t.datetime "started_at"
-    t.string   "tmp_file"
-    t.string   "before_sha"
-    t.text     "push_data"
     t.integer  "runner_id"
     t.integer  "commit_id"
     t.float    "coverage"
@@ -38,10 +33,8 @@ ActiveRecord::Schema.define(version: 20150324001227) do
 
   add_index "builds", ["commit_id"], name: "index_builds_on_commit_id", using: :btree
   add_index "builds", ["project_id", "commit_id"], name: "index_builds_on_project_id_and_commit_id", using: :btree
-  add_index "builds", ["project_id", "sha"], name: "index_builds_on_project_id_and_sha", using: :btree
   add_index "builds", ["project_id"], name: "index_builds_on_project_id", using: :btree
   add_index "builds", ["runner_id"], name: "index_builds_on_runner_id", using: :btree
-  add_index "builds", ["sha"], name: "index_builds_on_sha", using: :btree
 
   create_table "commits", force: true do |t|
     t.integer  "project_id"
@@ -57,6 +50,19 @@ ActiveRecord::Schema.define(version: 20150324001227) do
   add_index "commits", ["project_id"], name: "index_commits_on_project_id", using: :btree
   add_index "commits", ["sha"], name: "index_commits_on_sha", using: :btree
 
+  create_table "events", force: true do |t|
+    t.integer  "project_id"
+    t.integer  "user_id"
+    t.integer  "is_admin"
+    t.text     "description"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "events", ["created_at"], name: "index_events_on_created_at", using: :btree
+  add_index "events", ["is_admin"], name: "index_events_on_is_admin", using: :btree
+  add_index "events", ["project_id"], name: "index_events_on_project_id", using: :btree
+
   create_table "jobs", force: true do |t|
     t.integer  "project_id",                          null: false
     t.text     "commands"
@@ -68,8 +74,10 @@ ActiveRecord::Schema.define(version: 20150324001227) do
     t.boolean  "build_tags",     default: false,      null: false
     t.string   "job_type",       default: "parallel"
     t.string   "refs"
+    t.datetime "deleted_at"
   end
 
+  add_index "jobs", ["deleted_at"], name: "index_jobs_on_deleted_at", using: :btree
   add_index "jobs", ["project_id"], name: "index_jobs_on_project_id", using: :btree
 
   create_table "projects", force: true do |t|
@@ -79,7 +87,7 @@ ActiveRecord::Schema.define(version: 20150324001227) do
     t.datetime "updated_at"
     t.string   "token"
     t.string   "default_ref"
-    t.string   "gitlab_url"
+    t.string   "path"
     t.boolean  "always_build",             default: false, null: false
     t.integer  "polling_interval"
     t.boolean  "public",                   default: false, null: false
@@ -112,6 +120,11 @@ ActiveRecord::Schema.define(version: 20150324001227) do
     t.datetime "contacted_at"
     t.boolean  "active",       default: true,  null: false
     t.boolean  "is_shared",    default: false
+    t.string   "name"
+    t.string   "version"
+    t.string   "revision"
+    t.string   "platform"
+    t.string   "architecture"
   end
 
   create_table "services", force: true do |t|

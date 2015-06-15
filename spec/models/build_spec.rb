@@ -4,20 +4,15 @@
 #
 #  id          :integer          not null, primary key
 #  project_id  :integer
-#  ref         :string(255)
 #  status      :string(255)
 #  finished_at :datetime
 #  trace       :text
 #  created_at  :datetime
 #  updated_at  :datetime
-#  sha         :string(255)
 #  started_at  :datetime
-#  tmp_file    :string(255)
-#  before_sha  :string(255)
-#  push_data   :text
 #  runner_id   :integer
-#  coverage    :float
 #  commit_id   :integer
+#  coverage    :float
 #  commands    :text
 #  job_id      :integer
 #
@@ -37,13 +32,6 @@ describe Build do
   it { should respond_to :running? }
   it { should respond_to :pending? }
   it { should respond_to :trace_html }
-
-  it { should allow_mass_assignment_of(:commit_id) }
-  it { should allow_mass_assignment_of(:status) }
-  it { should allow_mass_assignment_of(:started_at) }
-  it { should allow_mass_assignment_of(:finished_at) }
-  it { should allow_mass_assignment_of(:trace) }
-  it { should allow_mass_assignment_of(:runner_id) }
 
   describe :first_pending do
     let(:first) { FactoryGirl.create :build, commit: commit, status: 'pending', created_at: Date.yesterday }

@@ -81,6 +81,7 @@ GEM
       coffee-script-source
       execjs
     coffee-script-source (1.6.3)
+    colored (1.2)
     columnize (0.9.0)
     connection_pool (1.2.0)
     coveralls (0.7.0)
@@ -91,6 +92,7 @@ GEM
       thor
     crack (0.4.1)
       safe_yaml (~> 0.9.0)
+    database_cleaner (1.3.0)
     debugger-linecache (1.2.0)
     default_value_for (3.0.0.1)
       activerecord (>= 3.2.0, < 5.0)
@@ -155,6 +157,9 @@ GEM
     hashie (2.0.5)
     highline (1.6.21)
     hike (1.2.3)
+    hipchat (1.5.0)
+      httparty
+      mimemagic
     httparty (0.11.0)
       multi_json (~> 1.0)
       multi_xml (>= 0.5.2)
@@ -185,6 +190,7 @@ GEM
       mime-types (>= 1.16, < 3)
     method_source (0.8.2)
     mime-types (2.4.3)
+    mimemagic (0.3.0)
     mini_portile (0.5.2)
     minitest (5.5.1)
     multi_json (1.11.0)
@@ -201,6 +207,8 @@ GEM
       multi_json (~> 1.3)
       multi_xml (~> 0.5)
       rack (~> 1.2)
+    paranoia (2.1.1)
+      activerecord (~> 4.0)
     parser (2.2.0.2)
       ast (>= 1.1, < 3.0)
     pg (0.17.0)
@@ -210,8 +218,6 @@ GEM
       multi_json (~> 1.0)
       websocket-driver (>= 0.2.0)
     powerpack (0.0.9)
-    protected_attributes (1.0.8)
-      activemodel (>= 4.0.1, < 5.0)
     pry (0.9.12.4)
       coderay (~> 1.0)
       method_source (~> 0.8)
@@ -375,7 +381,9 @@ DEPENDENCIES
   byebug
   capybara
   coffee-rails (~> 4.0.0)
+  colored
   coveralls
+  database_cleaner
   default_value_for (~> 3.0.0)
   email_spec
   factory_girl_rails
@@ -388,6 +396,7 @@ DEPENDENCIES
   growl
   guard-rspec
   haml-rails (~> 0.5.3)
+  hipchat (~> 1.5.0)
   httparty (= 0.11.0)
   jquery-rails
   jquery-turbolinks
@@ -398,9 +407,9 @@ DEPENDENCIES
   nested_form
   nprogress-rails
   oauth2 (= 1.0.0)
+  paranoia (~> 2.0)
   pg
   poltergeist (~> 1.5.1)
-  protected_attributes
   pry
   quiet_assets
   rack-mini-profiler

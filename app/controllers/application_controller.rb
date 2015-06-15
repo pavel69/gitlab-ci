@@ -36,6 +36,18 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  def authenticate_public_page!
+    unless project.public
+      unless current_user
+        redirect_to(new_user_sessions_path(return_to: request.fullpath)) and return
+      end
+
+      unless current_user.can_access_project?(project.gitlab_id)
+        page_404 and return
+      end
+    end
+  end
+
   def authenticate_token!
     unless project.valid_token?(params[:token])
       return head(403)
@@ -44,6 +56,12 @@ class ApplicationController < ActionController::Base
 
   def authorize_access_project!
     unless current_user.can_access_project?(@project.gitlab_id)
+      return page_404
+    end
+  end
+
+  def authorize_project_developer!
+    unless current_user.has_developer_access?(@project.gitlab_id)
       return page_404
     end
   end

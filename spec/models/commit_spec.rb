@@ -30,14 +30,6 @@ describe Commit do
   it { should respond_to :git_author_email }
   it { should respond_to :short_sha }
 
-  it { should allow_mass_assignment_of(:project_id) }
-  it { should allow_mass_assignment_of(:ref) }
-  it { should allow_mass_assignment_of(:sha) }
-  it { should allow_mass_assignment_of(:before_sha) }
-  it { should allow_mass_assignment_of(:push_data) }
-  it { should allow_mass_assignment_of(:status) }
-  it { should allow_mass_assignment_of(:project_name) }
-
   describe :last_build do
     subject { commit.last_build }
     before do
@@ -59,20 +51,6 @@ describe Commit do
       expect(commit.builds.count(:all)).to eq 2
       commit.retry
       expect(commit.builds.count(:all)).to eq 3
-    end
-  end
-
-  describe :ci_skip? do
-    let(:project) { FactoryGirl.create(:project) }
-    let(:commit) { FactoryGirl.create(:commit, project: project) }
-
-    it 'true if commit message contains [ci skip]' do
-      commit.stub(:git_commit_message) { 'Small typo [ci skip]' }
-      commit.ci_skip?.should == true
-    end
-
-    it 'false if commit message does not contain [ci skip]' do
-      commit.ci_skip?.should == false
     end
   end
 
@@ -133,7 +111,7 @@ describe Commit do
   describe :compare? do
     subject { commit_with_project.compare? }
 
-    context 'if project.gitlab_url and commit.before_sha are not nil' do
+    context 'if commit.before_sha are not nil' do
       it { should be_true }
     end
   end
@@ -152,26 +130,33 @@ describe Commit do
     it { commit.sha.should start_with(subject) }
   end
 
-  describe :gitlab? do
-    subject { commit_with_project.gitlab? }
+  describe "create_deploy_builds" do
+    it "creates deploy build" do
+      FactoryGirl.create :job, job_type: :deploy, project: project
+      project.reload
 
-    it { should eq(project.gitlab?) }
+      commit.create_deploy_builds(commit.ref)
+      commit.builds.reload
+
+      commit.builds.size.should == 1
+    end
   end
 
-  describe "create_deploy_builds" do
-    before do
-      job = FactoryGirl.create :job, project: project
-      job1 = FactoryGirl.create :job, project: project
-      FactoryGirl.create :job, job_type: :deploy, project: project
-      FactoryGirl.create :build, commit: commit, status: :success, job: job
-      FactoryGirl.create :build, commit: commit, status: :success, job: job1
-      project.reload
+  describe "#finished_at" do
+    let(:project) { FactoryGirl.create :project }
+    let(:commit) { FactoryGirl.create :commit, project: project }
+
+    it "returns finished_at of latest build" do
+      build = FactoryGirl.create :build, commit: commit, finished_at: Time.now - 60
+      build1 = FactoryGirl.create :build, commit: commit, finished_at: Time.now - 120
+
+      commit.finished_at.to_i.should == build.finished_at.to_i
     end
 
-    it "creates new build for deploy" do
-      commit.create_deploy_builds(commit.ref)
+    it "returns nil if there is no finished build" do
+      build = FactoryGirl.create :not_started_build, commit: commit
 
-      commit.builds.size.should == 3
+      commit.finished_at.should be_nil
     end
   end
 end

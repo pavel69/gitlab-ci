@@ -9,7 +9,7 @@
 #  updated_at               :datetime
 #  token                    :string(255)
 #  default_ref              :string(255)
-#  gitlab_url               :string(255)
+#  path                    :string(255)
 #  always_build             :boolean          default(FALSE), not null
 #  polling_interval         :integer
 #  public                   :boolean          default(FALSE), not null
@@ -21,6 +21,7 @@
 #  email_only_broken_builds :boolean          default(TRUE), not null
 #  skip_refs                :string(255)
 #  coverage_regex           :string(255)
+#  shared_runners_enabled   :boolean          default(FALSE)
 #
 
 require 'spec_helper'
@@ -30,7 +31,7 @@ describe Project do
 
   it { should have_many(:commits) }
 
-  it { should validate_presence_of :name }  
+  it { should validate_presence_of :name }
   it { should validate_presence_of :timeout }
   it { should validate_presence_of :default_ref }
 
@@ -43,6 +44,19 @@ describe Project do
     it 'should not set an random toke if one provided' do
       project = FactoryGirl.create :project
       project.token.should == "iPWx6WM4lhHNedGfBpPJNP"
+    end
+  end
+
+  describe "ordered_by_last_commit_date" do
+    it "returns ordered projects" do
+      newest_project = FactoryGirl.create :project
+      oldest_project = FactoryGirl.create :project
+      project_without_commits = FactoryGirl.create :project
+
+      FactoryGirl.create :commit, created_at: 1.hour.ago, project: newest_project
+      FactoryGirl.create :commit, created_at: 2.hour.ago, project: oldest_project
+
+      Project.ordered_by_last_commit_date.should == [newest_project, oldest_project, project_without_commits]
     end
   end
 
@@ -118,7 +132,12 @@ describe Project do
     it { parsed_project.should be_kind_of(Project) }
     it { parsed_project.name.should eq("GitLab / api.gitlab.org") }
     it { parsed_project.gitlab_id.should eq(189) }
-    it { parsed_project.gitlab_url.should eq("http://localhost:3000/gitlab/api-gitlab-org") }
+    it { parsed_project.gitlab_url.should eq("http://demo.gitlab.com/gitlab/api-gitlab-org") }
+
+    it "parses plain hash" do
+      data = YAML.load(project_dump)
+      Project.parse(data).name.should eq("GitLab / api.gitlab.org")
+    end
   end
 
   describe :repo_url_with_auth do
@@ -147,5 +166,12 @@ describe Project do
     it 'accepts glob pattern syntax' do
       expect(project.skip_ref?('feature/some_feature')).to eq true
     end
+  end
+
+  describe :search do
+    let!(:project) { FactoryGirl.create(:project, name: "foo") }
+
+    it { Project.search('fo').should include(project) }
+    it { Project.search('bar').should be_empty }
   end
 end

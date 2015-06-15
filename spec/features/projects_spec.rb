@@ -3,7 +3,7 @@ require 'spec_helper'
 describe "Projects" do
   before do
     login_as :user
-    @project = FactoryGirl.create :project
+    @project = FactoryGirl.create :project, name: "GitLab / gitlab-shell"
   end
 
   describe "GET /projects", js: true do
@@ -12,7 +12,8 @@ describe "Projects" do
       visit projects_path
     end
 
-    it { page.should have_content @project.name }
+    it { page.should have_content "GitLab / gitlab-shell" }
+    it { page.should have_selector ".search input#search" }
   end
 
   describe "GET /projects/:id" do
@@ -31,6 +32,15 @@ describe "Projects" do
 
     it { page.should have_content @project.name }
     it { page.should have_content 'Build Schedule' }
+
+    it "updates configuration" do
+      fill_in 'Skip refs', with: 'deploy'
+      click_button 'Save changes'
+
+      page.should have_content 'was successfully updated'
+
+      find_field('Skip refs').value.should eq 'deploy'
+    end
   end
 
   describe "GET /projects/:id/charts" do

@@ -20,5 +20,75 @@ describe CreateCommitService do
 
       it { should be_false }
     end
+
+    context "deploy builds" do
+      it "calls create_deploy_builds if there are no builds" do
+        project.jobs.destroy_all
+        Commit.any_instance.should_receive(:create_deploy_builds)
+        service.execute(project, ref: 'refs/heads/master', before: '00000000', after: '31das312')
+      end
+
+      it "does not call create_deploy_builds if there is build" do
+        Commit.any_instance.should_not_receive(:create_deploy_builds)
+        service.execute(project, ref: 'refs/heads/master', before: '00000000', after: '31das312')
+      end
+    end
+
+    context "skip tag if there is no build for it" do
+      it "does not create commit if there is no appropriate job" do
+        project.jobs
+
+        result = service.execute(project, ref: 'refs/tags/0_1', before: '00000000', after: '31das312')
+        result.should be_false
+      end
+
+      it "creates commit if there is appropriate job" do
+        project.jobs.first.update(build_tags: true)
+
+        result = service.execute(project, ref: 'refs/tags/0_1', before: '00000000', after: '31das312')
+        result.should be_persisted
+      end
+
+      it "does not create commit if there is no appropriate job nor deploy job" do
+        project.jobs.first.update(build_tags: false)
+        FactoryGirl.create(:deploy_job, project: project, refs: "release")
+
+        result = service.execute(project, ref: 'refs/tags/0_1', before: '00000000', after: '31das312')
+        result.should be_false
+      end
+
+      it "creates commit if there is no appropriate job but deploy job has right ref setting" do
+        project.jobs.first.update(build_tags: false)
+        FactoryGirl.create(:deploy_job, project: project, refs: "0_1")
+
+        result = service.execute(project, ref: 'refs/tags/0_1', before: '00000000', after: '31das312')
+        result.should be_persisted
+      end
+
+      it "creates commit if there is no appropriate job and deploy job has no ref setting" do
+        project.jobs.first.update(build_tags: true)
+        FactoryGirl.create(:deploy_job, project: project)
+
+        result = service.execute(project, ref: 'refs/tags/0_1', before: '00000000', after: '31das312')
+        result.should be_persisted
+      end
+    end
+
+    describe :ci_skip? do
+      it "skips commit creation if there is [ci skip] tag in commit message" do
+        commits = [{message: "some message[ci skip]"}]
+        result = service.execute(project, ref: 'refs/tags/0_1', before: '00000000', after: '31das312', commits: commits)
+        result.should be_false
+      end
+
+      it "does not skips commit creation if there is no [ci skip] tag in commit message" do
+        project.jobs.first.update(build_tags: true)
+
+        commits = [{message: "some message"}]
+
+        result = service.execute(project, ref: 'refs/tags/0_1', before: '00000000', after: '31das312', commits: commits)
+        result.should be_persisted
+      end
+    end
   end
 end

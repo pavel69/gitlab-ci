@@ -19,6 +19,7 @@ Rails.application.routes.draw do
       get :status, to: 'projects#badge'
       get :integration
       post :build
+      post :toggle_shared_runners
     end
 
     resources :services, only: [:index, :edit, :update] do
@@ -28,9 +29,12 @@ Rails.application.routes.draw do
     end
 
     resource :charts, only: [:show]
-    resources :commits, only: [:show] do
-      member do
-        get :status
+
+    resources :refs, constraints: { ref_id: /.*/ }, only: [] do
+      resources :commits, only: [:show] do
+        member do
+          get :status
+        end
       end
     end
 
@@ -48,18 +52,22 @@ Rails.application.routes.draw do
       end
     end
 
-    resources :runners, only: [:index, :edit, :update, :destroy] do
+    resources :runners, only: [:index, :edit, :update, :destroy, :show] do
       member do
         get :resume
         get :pause
       end
     end
 
+    resources :runner_projects, only: [:create, :destroy]
+
     resources :jobs, only: [:index] do
       collection do
         get :deploy_jobs
       end
     end
+
+    resources :events, only: [:index]
   end
 
   resource :user_sessions do
@@ -75,6 +83,8 @@ Rails.application.routes.draw do
         get :pause
       end
     end
+
+    resources :events, only: [:index]
 
     resources :projects do
       resources :runner_projects

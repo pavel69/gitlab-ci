@@ -9,7 +9,6 @@ def linux_only(require_as)
 end
 
 gem 'rails', '4.1.9'
-gem 'protected_attributes'
 gem 'activerecord-deprecated_finders'
 gem 'activerecord-session_store'
 gem "nested_form"
@@ -64,6 +63,9 @@ gem "default_value_for", "~> 3.0.0"
 # Slack integration
 gem "slack-notifier", "~> 1.0.0"
 
+# HipChat integration
+gem 'hipchat', '~> 1.5.0'
+
 # Other
 gem 'rake'
 gem 'foreman'
@@ -79,6 +81,12 @@ gem "font-awesome-rails", '~> 3.2'
 gem 'turbolinks'
 gem 'jquery-turbolinks'
 gem 'nprogress-rails'
+
+# Soft deletion
+gem "paranoia", "~> 2.0"
+
+# Colored output to console
+gem "colored"
 
 
 group :development do
@@ -100,7 +108,7 @@ group :development, :test do
   gem 'factory_girl_rails'
   gem "ffaker"
   gem "byebug"
-
+  gem "database_cleaner"
   gem 'shoulda-matchers'
   gem 'guard-rspec'
   gem 'rb-fsevent', require: darwin_only('rb-fsevent')

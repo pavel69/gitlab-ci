@@ -41,4 +41,65 @@ describe ProjectsController do
       expect(response.code).to eq('403')
     end
   end
+
+  describe "POST /projects" do
+    let(:project_dump) { File.read(Rails.root.join('spec/support/gitlab_stubs/raw_project.yml')) }
+    let(:gitlab_url) { GitlabCi.config.gitlab_server.url }
+
+    let (:user_data) do
+      data = JSON.parse File.read(Rails.root.join('spec/support/gitlab_stubs/user.json'))
+      data.merge("url" => gitlab_url)
+    end
+
+    let(:user) do
+      User.new(user_data)
+    end
+
+    it "creates project" do
+      allow(controller).to receive(:reset_cache) { true }
+      allow(controller).to receive(:current_user) { user }
+      Network.any_instance.stub(:enable_ci).and_return(true)
+      Network.any_instance.stub(:project_hooks).and_return(true)
+
+      post :create, { project: project_dump }.with_indifferent_access
+
+      expect(response.code).to eq('302')
+      expect(assigns(:project)).not_to be_a_new(Project)
+    end
+
+    it "shows error" do
+      allow(controller).to receive(:reset_cache) { true }
+      allow(controller).to receive(:current_user) { user }
+      User.any_instance.stub(:can_manage_project?).and_return(false)
+
+      post :create, { project: project_dump }.with_indifferent_access
+
+      expect(response.code).to eq('302')
+      expect(flash[:alert]).to include("You have to have at least master role to enable CI for this project")
+    end
+  end
+
+  describe "GET /gitlab" do
+    let(:gitlab_url) { GitlabCi.config.gitlab_server.url }
+
+    let (:user_data) do
+      data = JSON.parse File.read(Rails.root.join('spec/support/gitlab_stubs/user.json'))
+      data.merge("url" => gitlab_url)
+    end
+
+    let(:user) do
+      User.new(user_data)
+    end
+
+    it "searches projects" do
+      allow(controller).to receive(:reset_cache) { true }
+      allow(controller).to receive(:current_user) { user }
+      Network.any_instance.should_receive(:projects).with(hash_including(search: 'str'), :authorized)
+
+      xhr :get, :gitlab, { search: "str", format: "js" }.with_indifferent_access
+
+      expect(response).to be_success
+      expect(response.code).to eq('200')
+    end
+  end
 end

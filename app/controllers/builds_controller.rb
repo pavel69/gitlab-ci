@@ -1,8 +1,10 @@
 class BuildsController < ApplicationController
-  before_filter :authenticate_user!, except: [:status]
+  before_filter :authenticate_user!, except: [:status, :show]
+  before_filter :authenticate_public_page!, only: :show
   before_filter :project
-  before_filter :authorize_access_project!, except: [:status]
-  before_filter :authorize_manage_project!, except: [:status, :show]
+  before_filter :authorize_access_project!, except: [:status, :show]
+  before_filter :authorize_manage_project!, except: [:status, :show, :retry, :cancel]
+  before_filter :authorize_project_developer!, only: [:retry, :cancel]
   before_filter :build, except: [:show]
 
   def show
@@ -14,7 +16,7 @@ class BuildsController < ApplicationController
 
       if commit
         # Redirect to commit page
-        redirect_to project_commit_path(commit.project, commit)
+        redirect_to project_ref_commit_path(@project, @build.commit.ref, @build.commit.sha)
         return
       end
     end
@@ -37,7 +39,7 @@ class BuildsController < ApplicationController
     if @build.commands.blank?
       return page_404
     end
-    
+
     build = Build.retry(@build)
 
     if params[:return_to]
@@ -48,7 +50,7 @@ class BuildsController < ApplicationController
   end
 
   def status
-    render json: @build.to_json(only: [:status, :id, :sha, :coverage])
+    render json: @build.to_json(only: [:status, :id, :sha, :coverage], methods: :sha)
   end
 
   def cancel

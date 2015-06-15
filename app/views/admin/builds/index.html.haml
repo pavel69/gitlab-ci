@@ -1,10 +1,13 @@
-= content_for :title do
-  %h3.project-title
-    All builds
+%ul.nav.nav-tabs.append-bottom-20
+  %li{class: ("active" if @scope.nil?)}
+    = link_to 'All builds', admin_builds_path
+  
+  %li{class: ("active" if @scope == "pending")}
+    = link_to "Pending", admin_builds_path(scope: :pending)
 
-    .pull-right
-      %small
-        = pluralize(@builds.total_count, 'build')
+  %li{class: ("active" if @scope == "running")}
+    = link_to "Running", admin_builds_path(scope: :running)
+
 
 %table.builds
   %thead

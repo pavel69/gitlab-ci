@@ -1,6 +1,49 @@
 v7.10.0
   - Projects sorting by last commit date
   - Add project search at runner page
+v7.11.0
+  - Deploy Jobs API calls
+  - Projects search on dashboard page
+  - Improved runners page
+  - Running and Pending tabs on admin builds page
+  - Fix [ci skip] tag, so you can skip CI triggering now
+  - Add HipChat notifications
+  - Clean up project advanced settings.
+  - Add a GitLab project path parameter to the project API
+  - Remove projects IDs from dashboard
+  - UI fix: Remove page headers from the admin area
+  - Improve Email templates
+  - Add backup/restore utility
+  - Coordinator stores information(version, platform, revision, etc.) about runners.
+  - Fixed pagination on dashboard
+  - Public accessible build and commit pages of public projects
+  - Fix vulnerability in the API when MySQL is used
+
+v7.10.1
+  - Fix failing migration when update to 7.10 from 7.8 and older versions
+
+sidekiq_wirker_fix
+	- added sidekiq.yml
+	- integrated in script/background_jobs
+v7.10.0
+  - Projects sorting by last commit date
+  - Add project search at runner page
+  - Fix GitLab and CI projects collision
+  - Events for admin
+  - Events per projects
+  - Search for runners in admin area
+  - UI improvements: created separated admin section, removed useless project show page
+  - Runners sorting in admin area (by id)
+  - Remove protected_attributes gem
+  - Skip commit creation if there is no appropriate job
+  
+v7.9.3
+  - Contains no changes
+  - Developers can cancel and retry jobs
+
+v7.9.2
+  - [Security] Already existing projects should not be served by shared runners
+  - Ability to run deploy job without test jobs (every push will trigger deploy job)
 
 v7.9.1
   - [Security] Adding explicit is_shared parameter to runner
@@ -18,6 +61,7 @@ v7.9.0
   - Allow to pause runners - when paused runner will not receive any new build (Kamil Trzciński)
   - Add brakeman (security scanner for Ruby on Rails)
   - Changed a color of the canceled builds
+  - Fix of show the same commits in different branches
 
 v7.8.2
   - Fix the broken build failed email

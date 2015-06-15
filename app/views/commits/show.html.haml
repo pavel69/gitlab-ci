@@ -2,7 +2,7 @@
   = @project.name
   @
   #{gitlab_commit_link(@project, @commit.sha)}
-  - if current_user.can_manage_project?(@project.gitlab_id)
+  - if current_user && current_user.can_manage_project?(@project.gitlab_id)
     .pull-right
       = link_to project_jobs_path(@project), class: "btn btn-default btn-small" do
         %i.icon-edit.icon-white
@@ -51,7 +51,7 @@
   - if @commit.duration > 0
     %small.pull-right
       %i.icon-time
-      #{distance_of_time_in_words @commit.duration}
+      #{time_interval_in_words @commit.duration}
 
 %table.builds
   %thead

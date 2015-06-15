@@ -51,15 +51,7 @@ class Commit < ActiveRecord::Base
   end
 
   def compare?
-    gitlab? && !new_branch?
-  end
-
-  def gitlab?
-    project.gitlab?
-  end
-
-  def ci_skip?
-    !!(git_commit_message =~ /(\[ci skip\])/)
+    !new_branch?
   end
 
   def git_author_name
@@ -117,7 +109,6 @@ class Commit < ActiveRecord::Base
     build.tag_list = job.tag_list
     build.project_id = project_id
     build.job = job
-    build.ref = ref
     build.save
     build
   end
@@ -137,11 +128,9 @@ class Commit < ActiveRecord::Base
   end
 
   def create_deploy_builds(ref)
-    if success? && !last_build.job.deploy?
-      project.jobs.deploy.active.each do |job|
-        if job.run_for_ref?(ref)
-          create_build_from_job(job)
-        end
+    project.jobs.deploy.active.each do |job|
+      if job.run_for_ref?(ref)
+        create_build_from_job(job)
       end
     end
   end
@@ -193,7 +182,7 @@ class Commit < ActiveRecord::Base
   end
 
   def finished_at
-    @finished_at ||= builds.order('finished_at ASC').first.try(:finished_at)
+    @finished_at ||= builds.order('finished_at DESC').first.try(:finished_at)
   end
 
   def coverage

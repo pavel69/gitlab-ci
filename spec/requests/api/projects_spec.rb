@@ -4,13 +4,7 @@ describe API::API do
   include ApiHelpers
 
   let(:gitlab_url) { GitlabCi.config.gitlab_server.url }
-  let(:auth_opts) {
-    {
-      email: "test@test.com",
-      password: "123456"
-    }
-  }
-  let(:private_token) { Network.new.authenticate(gitlab_url, auth_opts)["private_token"] }
+  let(:private_token) { Network.new.authenticate(access_token: "some_token")["private_token"] }
 
   let(:options) {
     {
@@ -98,8 +92,68 @@ describe API::API do
         post api("/projects/non-existant-id/jobs"), options
         response.status.should == 404
       end
+
+      it "non-manager is not authorized" do
+        User.any_instance.stub(:can_manage_project?).and_return(false)
+        post api("/projects/#{project.id}/jobs"), options
+        response.status.should == 401
+      end
     end
   end
+
+  describe "POST /projects/:project_id/deploy_jobs" do
+    let!(:project) { FactoryGirl.create(:project) }
+
+    let(:job_info) {
+      {
+        name: "A Job Name",
+        commands: "ls -lad",
+        active: false,
+        refs: "master",
+        tags: "release, deployment",
+      }
+    }
+    let(:invalid_job_info) { {} }
+
+    context "Invalid Job Info" do
+      before do
+        options.merge!(invalid_job_info)
+      end
+
+      it "should error with invalid data" do
+        post api("/projects/#{project.id}/deploy_jobs"), options
+        response.status.should == 400
+      end
+    end
+
+    context "Valid Job Info" do
+      before do
+        options.merge!(job_info)
+      end
+
+      it "should create a job for specified project" do
+        post api("/projects/#{project.id}/deploy_jobs"), options
+        response.status.should == 201
+        json_response["name"].should == job_info[:name]
+        json_response["commands"].should == job_info[:commands]
+        json_response["active"].should == job_info[:active]
+        json_response["refs"].should == job_info[:refs]
+        json_response["tags"].should have(2).items
+      end
+
+      it "fails to create job for non existsing project" do
+        post api("/projects/non-existant-id/deploy_jobs"), options
+        response.status.should == 404
+      end
+
+      it "non-manager is not authorized" do
+        User.any_instance.stub(:can_manage_project?).and_return(false)
+        post api("/projects/#{project.id}/deploy_jobs"), options
+        response.status.should == 401
+      end
+    end
+  end
+
 
   describe "GET /projects/:project_id/jobs" do
     let!(:project) { FactoryGirl.create(:project) }
@@ -162,12 +216,9 @@ describe API::API do
     end
 
     it "should delete a project job" do
-      post api("/projects/#{project.id}/jobs"), options
-      response.status.should == 201
-      json_response["name"].should == job_info[:name]
-      json_response["commands"].should == job_info[:commands]
-      job_id = json_response["id"]
-      delete api("/projects/#{project.id}/jobs/#{job_id}"), options
+      job = FactoryGirl.create(:job, project: project)
+
+      delete api("/projects/#{project.id}/jobs/#{job.id}"), options
       response.status.should == 200
     end
 
@@ -179,6 +230,15 @@ describe API::API do
     it "fails to delete a job for a non existsing job id" do
       delete api("/projects/#{project.id}/jobs/non-existant-job-id"), options
       response.status.should == 404
+    end
+
+    it "non-manager is not authorized" do
+      User.any_instance.stub(:can_manage_project?).and_return(false)
+      job = FactoryGirl.create(:job, project: project)
+
+      delete api("/projects/#{project.id}/jobs/#{job.id}"), options
+
+      response.status.should == 401
     end
   end
 
@@ -203,6 +263,11 @@ describe API::API do
         response.status.should == 404
       end
 
+      it "non-manager is not authorized" do
+        User.any_instance.stub(:can_manage_project?).and_return(false)
+        post api("/projects/#{project.id}/webhooks"), options
+        response.status.should == 401
+      end
     end
 
     context "Invalid Webhook URL" do
@@ -263,6 +328,12 @@ describe API::API do
       put api("/projects/non-existant-id"), options
       response.status.should == 404
     end
+
+    it "non-manager is not authorized" do
+      User.any_instance.stub(:can_manage_project?).and_return(false)
+      put api("/projects/#{project.id}"), options
+      response.status.should == 401
+    end
   end
 
   describe "DELETE /projects/:id" do
@@ -273,6 +344,17 @@ describe API::API do
       response.status.should == 200
 
       expect { project.reload }.to raise_error
+    end
+
+    it "non-manager is not authorized" do
+      User.any_instance.stub(:can_manage_project?).and_return(false)
+      delete api("/projects/#{project.id}"), options
+      response.status.should == 401
+    end
+
+    it "is getting not found error" do
+      delete api("/projects/not-existing_id"), options
+      response.status.should == 404
     end
   end
 
@@ -330,6 +412,12 @@ describe API::API do
         post api("/projects/non-existing/runners/#{runner.id}"), options
         response.status.should == 404
       end
+
+      it "non-manager is not authorized" do
+        User.any_instance.stub(:can_manage_project?).and_return(false)
+        post api("/projects/#{project.id}/runners/#{runner.id}"), options
+        response.status.should == 401
+      end
     end
 
     describe "DELETE /projects/:id/runners/:id" do
@@ -347,6 +435,12 @@ describe API::API do
 
         project.reload
         project.runners.should be_empty
+      end
+
+      it "non-manager is not authorized" do
+        User.any_instance.stub(:can_manage_project?).and_return(false)
+        post api("/projects/#{project.id}/runners/#{runner.id}"), options
+        response.status.should == 401
       end
     end
   end

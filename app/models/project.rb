@@ -9,7 +9,7 @@
 #  updated_at               :datetime
 #  token                    :string(255)
 #  default_ref              :string(255)
-#  gitlab_url               :string(255)
+#  path                     :string(255)
 #  always_build             :boolean          default(FALSE), not null
 #  polling_interval         :integer
 #  public                   :boolean          default(FALSE), not null
@@ -21,16 +21,11 @@
 #  email_only_broken_builds :boolean          default(TRUE), not null
 #  skip_refs                :string(255)
 #  coverage_regex           :string(255)
+#  shared_runners_enabled   :boolean          default(FALSE)
 #
 
 class Project < ActiveRecord::Base
   include ProjectStatus
-
-  attr_accessible :name, :path, :timeout, :token, :timeout_in_minutes,
-    :default_ref, :gitlab_url, :always_build, :polling_interval,
-    :public, :ssh_url_to_repo, :gitlab_id, :allow_git_fetch, :skip_refs,
-    :email_recipients, :email_add_pusher, :email_only_broken_builds, :coverage_regex,
-    :jobs_attributes, :shared_runners_enabled
 
   has_many :commits, dependent: :destroy
   has_many :builds, through: :commits, dependent: :destroy
@@ -38,9 +33,11 @@ class Project < ActiveRecord::Base
   has_many :runners, through: :runner_projects
   has_many :web_hooks, dependent: :destroy
   has_many :jobs, dependent: :destroy
+  has_many :events, dependent: :destroy
 
   # Project services
   has_many :services, dependent: :destroy
+  has_one :hip_chat_service, dependent: :destroy
   has_one :slack_service, dependent: :destroy
   has_one :mail_service, dependent: :destroy
 
@@ -50,7 +47,7 @@ class Project < ActiveRecord::Base
   # Validations
   #
   validates_presence_of :name, :timeout, :token, :default_ref,
-    :gitlab_url, :ssh_url_to_repo, :gitlab_id
+    :path, :ssh_url_to_repo, :gitlab_id
 
   validates_uniqueness_of :name
 
@@ -72,13 +69,17 @@ ls -la
       eos
     end
 
-    def parse(project_yaml)
-      project = YAML.load(project_yaml)
+    def parse(project_params)
+      project = if project_params.is_a?(String)
+                  YAML.load(project_params)
+                else
+                  project_params
+                end
 
       params = {
         name:                    project.name_with_namespace,
         gitlab_id:               project.id,
-        gitlab_url:              project.web_url,
+        path:                    project.path_with_namespace,
         default_ref:             project.default_branch || 'master',
         ssh_url_to_repo:         project.ssh_url_to_repo,
         email_add_pusher:        GitlabCi.config.gitlab_ci.add_pusher,
@@ -90,12 +91,11 @@ ls -la
       project
     end
 
-    def from_gitlab(user, page, per_page, scope = :owned)
+    def from_gitlab(user, scope = :owned, options)
       opts = { private_token: user.private_token }
-      opts[:per_page] = per_page if per_page.present?
-      opts[:page]     = page     if page.present?
+      opts.merge! options
 
-      projects = Network.new.projects(user.url, opts, scope)
+      projects = Network.new.projects(opts.compact, scope)
 
       if projects
         projects.map { |pr| OpenStruct.new(pr) }
@@ -105,7 +105,7 @@ ls -la
     end
 
     def already_added?(project)
-      where(gitlab_url: project.web_url).any?
+      where(gitlab_id: project.id).any?
     end
 
     def unassigned(runner)
@@ -113,14 +113,21 @@ ls -la
         "AND runner_projects.runner_id = #{runner.id}").
       where('runner_projects.project_id' => nil)
     end
+
+    def ordered_by_last_commit_date
+      last_commit_subquery = "(SELECT project_id, MAX(created_at) created_at FROM commits GROUP BY project_id)"
+      joins("LEFT JOIN #{last_commit_subquery} AS last_commit ON projects.id = last_commit.project_id").
+        order("CASE WHEN last_commit.created_at IS NULL THEN 1 ELSE 0 END, last_commit.created_at DESC")
+    end
+
+    def search(query)
+      where('LOWER(projects.name) LIKE :query',
+            query: "%#{query.try(:downcase)}%")
+    end
   end
 
   def set_default_values
     self.token = SecureRandom.hex(15) if self.token.blank?
-  end
-
-  def gitlab?
-    gitlab_url.present?
   end
 
   def tracked_refs
@@ -168,6 +175,11 @@ ls -la
     end
   end
 
+  def create_commit_for_tag?(tag)
+    jobs.where(build_tags: true).active.parallel.any? ||
+    jobs.active.deploy.any?{ |job| job.run_for_ref?(tag)}
+  end
+
   def coverage_enabled?
     coverage_regex.present?
   end
@@ -195,7 +207,7 @@ ls -la
   end
 
   def available_services_names
-    %w(slack mail)
+    %w(slack mail hip_chat)
   end
 
   def build_missing_services
@@ -218,6 +230,10 @@ ls -la
         logger.error(e)
       end
     end
+  end
+
+  def gitlab_url
+    File.join(GitlabCi.config.gitlab_server.url, path)
   end
 
   def setup_finished?
