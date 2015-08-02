@@ -13,16 +13,30 @@ The runner runs the line below before it runs the commands in your build script:
 
 # Environmental variables
 
-The build command is run from [GitlabCi::Build#command](https://gitlab.com/gitlab-org/gitlab-ci-runner/blob/master/lib/build.rb#L96) and contains the following environmental variables:
+The runner sets the following environmental variables:
 
-    CI_SERVER, CI_SERVER_NAME, CI_SERVER_VERSION, CI_SERVER_REVISION
-    CI_BUILD_REF, CI_BUILD_BEFORE_SHA, CI_BUILD_REF_NAME (branch), CI_BUILD_ID
+```
+CI=true
+CI_SERVER=true
+CI_SERVER_NAME=GitLab CI
+GITLAB_CI=true
+CI_SERVER_VERSION
+CI_SERVER_REVISION
+CI_BUILD_REF
+CI_BUILD_BEFORE_SHA
+CI_BUILD_REF_NAME (branch)
+CI_BUILD_ID
+CI_BUILD_REPO
+CI_PROJECT_DIR
+```
 
 # Build script examples
 
 + [Build script for Omniauth LDAP](build-script-for-omniauth-ldap.md)
 + [Build script GitLab CE](build_script_gitlab_ce.md)
 + [Build script for Sencha deploy PhoneGapBuild](build_script_sencha_deploy_phonegapbuild.md)
++ [Test and deploy Ruby Application to Heroku](test-and-deploy-ruby-application-to-heroku.md)
++ [Test and deploy Python Application to Heroku](test-and-deploy-python-application-to-heroku.md)
 
 # Configuring runner examples
 

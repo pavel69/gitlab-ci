@@ -2,19 +2,23 @@
 #
 # Table name: builds
 #
-#  id          :integer          not null, primary key
-#  project_id  :integer
-#  status      :string(255)
-#  finished_at :datetime
-#  trace       :text
-#  created_at  :datetime
-#  updated_at  :datetime
-#  started_at  :datetime
-#  runner_id   :integer
-#  commit_id   :integer
-#  coverage    :float
-#  commands    :text
-#  job_id      :integer
+#  id            :integer          not null, primary key
+#  project_id    :integer
+#  status        :string(255)
+#  finished_at   :datetime
+#  trace         :text
+#  created_at    :datetime
+#  updated_at    :datetime
+#  started_at    :datetime
+#  runner_id     :integer
+#  commit_id     :integer
+#  coverage      :float
+#  commands      :text
+#  job_id        :integer
+#  name          :string(255)
+#  deploy        :boolean          default(FALSE)
+#  options       :text
+#  allow_failure :boolean          default(FALSE), not null
 #
 
 class Build < ActiveRecord::Base
@@ -23,7 +27,8 @@ class Build < ActiveRecord::Base
   belongs_to :commit
   belongs_to :project
   belongs_to :runner
-  belongs_to :job, -> { with_deleted }
+
+  serialize :options
 
   validates :commit, presence: true
   validates :status, presence: true
@@ -34,6 +39,7 @@ class Build < ActiveRecord::Base
   scope :success, ->() { where(status: "success") }
   scope :failed, ->() { where(status: "failed")  }
   scope :unstarted, ->() { where(runner_id: nil) }
+  scope :running_or_pending, ->() { where(status:[:running, :pending]) }
 
   acts_as_taggable
 
@@ -64,17 +70,13 @@ class Build < ActiveRecord::Base
 
     def retry(build)
       new_build = Build.new(status: :pending)
-
-      if build.job
-        new_build.commands = build.job.commands
-        new_build.tag_list = build.job.tag_list
-      else
-        new_build.commands = build.commands
-      end
-
-      new_build.job_id = build.job_id
+      new_build.options = build.options
+      new_build.commands = build.commands
+      new_build.tag_list = build.tag_list
       new_build.commit_id = build.commit_id
       new_build.project_id = build.project_id
+      new_build.name = build.name
+      new_build.allow_failure = build.allow_failure
       new_build.save
       new_build
     end
@@ -109,8 +111,8 @@ class Build < ActiveRecord::Base
         WebHookService.new.build_end(build)
       end
 
-      if build.commit.success? && !(build.job && build.job.deploy?)
-        build.commit.create_deploy_builds(build.ref)
+      if build.commit.success?
+        build.commit.create_next_builds
       end
 
       project.execute_services(build)
@@ -153,8 +155,16 @@ class Build < ActiveRecord::Base
     canceled? || success? || failed?
   end
 
+  def ignored?
+    failed? && allow_failure?
+  end
+
   def timeout
     project.timeout
+  end
+
+  def variables
+    project.variables
   end
 
   def duration
@@ -207,17 +217,32 @@ class Build < ActiveRecord::Base
     end
   end
 
-  def job_name
-    if job
-      job.name
+  def trace
+    if File.exist?(path_to_trace)
+      File.read(path_to_trace)
+    else
+      # backward compatibility
+      read_attribute :trace
     end
   end
 
-  def for_tag?
-    if job && job.build_tags
-      true
-    else
-      false
+  def trace=(trace)
+    unless Dir.exists? dir_to_trace
+      FileUtils.mkdir_p dir_to_trace
     end
+
+    File.write(path_to_trace, trace)
+  end
+
+  def dir_to_trace
+    File.join(
+      Settings.gitlab_ci.builds_path,
+      created_at.utc.strftime("%Y_%m"),
+      project.id.to_s
+    )
+  end
+
+  def path_to_trace
+    "#{dir_to_trace}/#{id}.log"
   end
 end

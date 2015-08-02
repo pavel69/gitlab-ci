@@ -2,7 +2,7 @@
 
 ## Create a backup of the GitLab CI
 
-A backup creates an archive file that contains the database.
+A backup creates an archive file that contains the database and builds files.
 This archive will be saved in backup_path (see `config/application.yml`).
 The filename will be `[TIMESTAMP]_gitlab_ci_backup.tar.gz`. This timestamp can be used to restore an specific backup.
 You can only restore a backup to exactly the same version of GitLab CI that you created it on, for example 7.10.1.
@@ -21,8 +21,10 @@ sudo -u gitlab_ci -H bundle exec rake backup:create RAILS_ENV=production
 Example output:
 
 ```
-Dumping database ... 
+Dumping database ...
 Dumping PostgreSQL database gitlab_ci_development ... [DONE]
+done
+Dumping builds ...
 done
 Creating backup archive: 1430930060_gitlab_ci_backup.tar.gz ... done
 Uploading backup archive to remote storage  ... skipped
@@ -48,6 +50,7 @@ gitlab_ci['backup_upload_connection'] = {
   'aws_secret_access_key' => 'secret123'
 }
 gitlab_ci['backup_upload_remote_directory'] = 'my.s3.bucket'
+gitlab_ci['backup_multipart_chunk_size'] = 104857600
 ```
 
 For installations from source:
@@ -64,6 +67,7 @@ For installations from source:
         aws_secret_access_key: 'secret123'
       # The remote 'directory' to store your backups. For S3, this would be the bucket name.
       remote_directory: 'my.s3.bucket'
+      multipart_chunk_size: 104857600
 ```
 
 If you are uploading your backups to S3 you will probably want to create a new
@@ -119,11 +123,16 @@ with the name of your bucket:
 
 ## Storing configuration files
 
-Please be informed that a backup does not store your configuration files.
+Please be informed that a backup does not store your configuration and secret files.
 If you use an Omnibus package please see the [instructions in the readme to backup your configuration](https://gitlab.com/gitlab-org/omnibus-gitlab/blob/master/README.md#backup-and-restore-omnibus-gitlab-configuration).
 If you have a cookbook installation there should be a copy of your configuration in Chef.
-If you have an installation from source, please consider backing up your `application.yml` file, any SSL keys and certificates, and your [SSH host keys](https://superuser.com/questions/532040/copy-ssh-keys-from-one-server-to-another-server/532079#532079).
-
+If you have an installation from source:
+1. please backup `config/secrets.yml` file that contains key to encrypt variables in database,
+but don't store it in the same place as your database backups.
+Otherwise your secrets are exposed in case one of your backups is compromised.
+1. please consider backing up your `application.yml` file,
+1. any SSL keys and certificates, 
+1. and your [SSH host keys](https://superuser.com/questions/532040/copy-ssh-keys-from-one-server-to-another-server/532079#532079).
 
 ## Restore a previously created backup
 
@@ -157,8 +166,8 @@ timestamp of the backup you are restoring.
 
 ```shell
 # Stop processes that are connected to the database
-sudo gitlab-ctl stop unicorn
-sudo gitlab-ctl stop sidekiq
+sudo gitlab-ctl stop ci-unicorn
+sudo gitlab-ctl stop ci-sidekiq
 
 # This command will overwrite the contents of your GitLab CI database!
 sudo gitlab-ci-rake backup:restore BACKUP=1393513186
@@ -217,4 +226,12 @@ gitlab_ci['backup_keep_time'] = 604800
 ```
 
 NOTE: This cron job does not [backup your omnibus-gitlab configuration](#backup-and-restore-omnibus-gitlab-configuration).
+
+## Known issues
+
+If you’ve been using GitLab CI since 7.11 or before using MySQL and the official installation guide, you will probably get the following error while making a backup: `Dumping MySQL database gitlab_ci_production ... mysqldump: Got error: 1044: Access denied for user 'gitlab_ci'@'localhost' to database 'gitlab_ci_production' when using LOCK TABLES` .This can be resolved by adding a LOCK TABLES permission to the gitlab_ci MySQL user. Add this permission with:
+```
+$ mysql -u root -p
+mysql> GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, LOCK TABLES ON `gitlab_ci_production`.* TO 'gitlab_ci'@'localhost';
+```
 

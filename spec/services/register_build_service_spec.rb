@@ -3,9 +3,8 @@ require 'spec_helper'
 describe RegisterBuildService do
   let!(:service) { RegisterBuildService.new }
   let!(:project) { FactoryGirl.create :project }
-  let!(:job) { FactoryGirl.create :job, project: project }
   let!(:commit) { FactoryGirl.create :commit, project: project }
-  let!(:pending_build) { commit.create_build_from_job(job) }
+  let!(:pending_build) { FactoryGirl.create :build, project: project, commit: commit }
   let!(:shared_runner) { FactoryGirl.create(:runner, is_shared: true) }
   let!(:specific_runner) { FactoryGirl.create(:runner, is_shared: false) }
 
@@ -14,6 +13,37 @@ describe RegisterBuildService do
   end
 
   describe :execute do
+    context 'runner follow tag list' do
+      it "picks build with the same tag" do
+        pending_build.tag_list = ["linux"]
+        pending_build.save
+        specific_runner.tag_list = ["linux"]
+        service.execute(specific_runner).should == pending_build
+      end
+
+      it "does not pick build with different tag" do
+        pending_build.tag_list = ["linux"]
+        pending_build.save
+        specific_runner.tag_list = ["win32"]
+        service.execute(specific_runner).should be_false
+      end
+
+      it "picks build without tag" do
+        service.execute(specific_runner).should == pending_build
+      end
+
+      it "does not pick build with tag" do
+        pending_build.tag_list = ["linux"]
+        pending_build.save
+        service.execute(specific_runner).should be_false
+      end
+
+      it "pick build without tag" do
+        specific_runner.tag_list = ["win32"]
+        service.execute(specific_runner).should == pending_build
+      end
+    end
+
     context 'allow shared runners' do
       before do
         project.shared_runners_enabled = true

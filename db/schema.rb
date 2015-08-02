@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150508011360) do
+ActiveRecord::Schema.define(version: 20150721204649) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -29,6 +29,11 @@ ActiveRecord::Schema.define(version: 20150508011360) do
     t.float    "coverage"
     t.text     "commands"
     t.integer  "job_id"
+    t.string   "name"
+    t.boolean  "deploy",        default: false
+    t.text     "options"
+    t.boolean  "allow_failure", default: false, null: false
+    t.string   "job_type"
   end
 
   add_index "builds", ["commit_id"], name: "index_builds_on_commit_id", using: :btree
@@ -44,6 +49,8 @@ ActiveRecord::Schema.define(version: 20150508011360) do
     t.text     "push_data"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.boolean  "tag",         default: false
+    t.text     "yaml_errors"
   end
 
   add_index "commits", ["project_id", "sha"], name: "index_commits_on_project_id_and_sha", using: :btree
@@ -82,7 +89,7 @@ ActiveRecord::Schema.define(version: 20150508011360) do
 
   create_table "projects", force: true do |t|
     t.string   "name",                                     null: false
-    t.integer  "timeout",                  default: 1800,  null: false
+    t.integer  "timeout",                  default: 3600,  null: false
     t.datetime "created_at"
     t.datetime "updated_at"
     t.string   "token"
@@ -100,6 +107,7 @@ ActiveRecord::Schema.define(version: 20150508011360) do
     t.string   "skip_refs"
     t.string   "coverage_regex"
     t.boolean  "shared_runners_enabled",   default: false
+    t.text     "generated_yaml_config"
   end
 
   create_table "runner_projects", force: true do |t|
@@ -168,6 +176,17 @@ ActiveRecord::Schema.define(version: 20150508011360) do
   end
 
   add_index "tags", ["name"], name: "index_tags_on_name", unique: true, using: :btree
+
+  create_table "variables", force: true do |t|
+    t.integer "project_id",           null: false
+    t.string  "key"
+    t.text    "value"
+    t.text    "encrypted_value"
+    t.string  "encrypted_value_salt"
+    t.string  "encrypted_value_iv"
+  end
+
+  add_index "variables", ["project_id"], name: "index_variables_on_project_id", using: :btree
 
   create_table "web_hooks", force: true do |t|
     t.string   "url",        null: false

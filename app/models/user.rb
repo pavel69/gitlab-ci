@@ -57,7 +57,7 @@ class User
 
   def can_manage_project?(project_gitlab_id)
     opts = {
-      private_token: self.private_token,
+      access_token: self.access_token,
     }
 
     Rails.cache.fetch(cache_key('manage', project_gitlab_id, sync_at)) do
@@ -71,14 +71,17 @@ class User
   end
 
   def authorized_projects
-    @authorized_projects ||= Project.where(gitlab_id: gitlab_projects.map(&:id))
+    Project.where(gitlab_id: gitlab_projects.map(&:id)).select do |project|
+      # This is slow: it makes request to GitLab for each project to verify manage permission
+      can_manage_project?(project.gitlab_id)
+    end
   end
 
   private
 
   def project_info(project_gitlab_id)
     opts = {
-      private_token: self.private_token,
+      access_token: self.access_token,
     }
 
     Rails.cache.fetch(cache_key("project_info", project_gitlab_id, sync_at)) do

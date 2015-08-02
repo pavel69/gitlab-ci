@@ -2,14 +2,16 @@
 #
 # Table name: commits
 #
-#  id         :integer          not null, primary key
-#  project_id :integer
-#  ref        :string(255)
-#  sha        :string(255)
-#  before_sha :string(255)
-#  push_data  :text
-#  created_at :datetime
-#  updated_at :datetime
+#  id          :integer          not null, primary key
+#  project_id  :integer
+#  ref         :string(255)
+#  sha         :string(255)
+#  before_sha  :string(255)
+#  push_data   :text
+#  created_at  :datetime
+#  updated_at  :datetime
+#  tag         :boolean          default(FALSE)
+#  yaml_errors :text
 #
 
 require 'spec_helper'
@@ -130,15 +132,24 @@ describe Commit do
     it { commit.sha.should start_with(subject) }
   end
 
-  describe "create_deploy_builds" do
-    it "creates deploy build" do
-      FactoryGirl.create :job, job_type: :deploy, project: project
-      project.reload
+  describe :create_next_builds do
+    it "creates builds for next type" do
+      config_processor = GitlabCiYamlProcessor.new(gitlab_ci_yaml)
+      commit.stub(:config_processor).and_return(config_processor)
 
-      commit.create_deploy_builds(commit.ref)
+      commit.create_builds.should be_true
       commit.builds.reload
+      commit.builds.size.should == 2
 
-      commit.builds.size.should == 1
+      commit.create_next_builds.should be_true
+      commit.builds.reload
+      commit.builds.size.should == 4
+
+      commit.create_next_builds.should be_true
+      commit.builds.reload
+      commit.builds.size.should == 5
+
+      commit.create_next_builds.should be_false
     end
   end
 
@@ -157,6 +168,36 @@ describe Commit do
       build = FactoryGirl.create :not_started_build, commit: commit
 
       commit.finished_at.should be_nil
+    end
+  end
+
+  describe "coverage" do
+    let(:project) { FactoryGirl.create :project, coverage_regex: "/.*/" }
+    let(:commit) { FactoryGirl.create :commit, project: project }
+
+    it "calculates average when there are two builds with coverage" do
+      FactoryGirl.create :build, name: "rspec", coverage: 30, commit: commit
+      FactoryGirl.create :build, name: "rubocop", coverage: 40, commit: commit
+      commit.coverage.should == "35.00"
+    end
+
+    it "calculates average when there are two builds with coverage and one with nil" do
+      FactoryGirl.create :build, name: "rspec", coverage: 30, commit: commit
+      FactoryGirl.create :build, name: "rubocop", coverage: 40, commit: commit
+      FactoryGirl.create :build, commit: commit
+      commit.coverage.should == "35.00"
+    end
+
+    it "calculates average when there are two builds with coverage and one is retried" do
+      FactoryGirl.create :build, name: "rspec", coverage: 30, commit: commit
+      FactoryGirl.create :build, name: "rubocop", coverage: 30, commit: commit
+      FactoryGirl.create :build, name: "rubocop", coverage: 40, commit: commit
+      commit.coverage.should == "35.00"
+    end
+
+    it "calculates average when there is one build without coverage" do
+      FactoryGirl.create :build, commit: commit
+      commit.coverage.should be_nil
     end
   end
 end

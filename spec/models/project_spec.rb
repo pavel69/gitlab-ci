@@ -4,12 +4,12 @@
 #
 #  id                       :integer          not null, primary key
 #  name                     :string(255)      not null
-#  timeout                  :integer          default(1800), not null
+#  timeout                  :integer          default(3600), not null
 #  created_at               :datetime
 #  updated_at               :datetime
 #  token                    :string(255)
 #  default_ref              :string(255)
-#  path                    :string(255)
+#  path                     :string(255)
 #  always_build             :boolean          default(FALSE), not null
 #  polling_interval         :integer
 #  public                   :boolean          default(FALSE), not null
@@ -22,6 +22,7 @@
 #  skip_refs                :string(255)
 #  coverage_regex           :string(255)
 #  shared_runners_enabled   :boolean          default(FALSE)
+#  generated_yaml_config    :text
 #
 
 require 'spec_helper'
@@ -123,11 +124,10 @@ describe Project do
   end
 
   describe 'Project.parse' do
-    let(:project_dump) { File.read(Rails.root.join('spec/support/gitlab_stubs/raw_project.yml')) }
+    let(:project_dump) { YAML.load File.read(Rails.root.join('spec/support/gitlab_stubs/raw_project.yml')) }
     let(:parsed_project) { Project.parse(project_dump) }
 
-    before { parsed_project.build_default_job }
-
+    
     it { parsed_project.should be_valid }
     it { parsed_project.should be_kind_of(Project) }
     it { parsed_project.name.should eq("GitLab / api.gitlab.org") }
@@ -135,8 +135,7 @@ describe Project do
     it { parsed_project.gitlab_url.should eq("http://demo.gitlab.com/gitlab/api-gitlab-org") }
 
     it "parses plain hash" do
-      data = YAML.load(project_dump)
-      Project.parse(data).name.should eq("GitLab / api.gitlab.org")
+      Project.parse(project_dump).name.should eq("GitLab / api.gitlab.org")
     end
   end
 
@@ -152,26 +151,35 @@ describe Project do
     it { should include(project.gitlab_url[7..-1]) }
   end
 
-  describe "#skip_ref?" do
-    let(:project) { FactoryGirl.create(:project, skip_refs: "master, develop, feature/*") }
-
-    it 'returns true when item is not in list' do
-      expect(project.skip_ref?('someotherstring')).to eq false
-    end
-
-    it 'accepts string values' do
-      expect(project.skip_ref?('master')).to eq true
-    end
-
-    it 'accepts glob pattern syntax' do
-      expect(project.skip_ref?('feature/some_feature')).to eq true
-    end
-  end
-
   describe :search do
     let!(:project) { FactoryGirl.create(:project, name: "foo") }
 
     it { Project.search('fo').should include(project) }
     it { Project.search('bar').should be_empty }
+  end
+
+  describe :any_runners do
+    it "there are no runners available" do
+      project = FactoryGirl.create(:project)
+      project.any_runners?.should be_false
+    end
+
+    it "there is a specific runner" do
+      project = FactoryGirl.create(:project)
+      project.runners << FactoryGirl.create(:specific_runner)
+      project.any_runners?.should be_true
+    end
+
+    it "there is a shared runner" do
+      project = FactoryGirl.create(:project, shared_runners_enabled: true)
+      FactoryGirl.create(:shared_runner)
+      project.any_runners?.should be_true
+    end
+
+    it "there is a shared runner, but they are prohibited to use" do
+      project = FactoryGirl.create(:project)
+      FactoryGirl.create(:shared_runner)
+      project.any_runners?.should be_false
+    end
   end
 end

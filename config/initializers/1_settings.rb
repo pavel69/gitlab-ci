@@ -40,6 +40,7 @@ Settings.gitlab_ci['support_email']       ||= Settings.gitlab_ci.email_from
 Settings.gitlab_ci['all_broken_builds'] = true if Settings.gitlab_ci['all_broken_builds'].nil?
 Settings.gitlab_ci['add_pusher']     = false if Settings.gitlab_ci['add_pusher'].nil?
 Settings.gitlab_ci['url']                 ||= Settings.send(:build_gitlab_ci_url)
+Settings.gitlab_ci['builds_path']         = File.expand_path(Settings.gitlab_ci['builds_path'] || "builds/", Rails.root)
 
 # Compatibility with old config
 Settings['gitlab_server_urls'] ||= Settings['allowed_gitlab_urls']
@@ -63,3 +64,4 @@ Settings.backup['upload'] ||= Settingslogic.new({ 'remote_directory' => nil, 'co
 if Settings.backup['upload']['connection']
   Settings.backup['upload']['connection'] = Hash[Settings.backup['upload']['connection'].map { |k, v| [k.to_sym, v] }]
 end
+Settings.backup['upload']['multipart_chunk_size'] ||= 104857600

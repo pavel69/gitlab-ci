@@ -9,16 +9,18 @@
         %span.runner-state.runner-state-specific
           Specific
 
-  
+
 
 - if @runner.shared?
   .bs-callout.bs-callout-success
     %h4 This runner will process build from ALL UNASSIGNED projects
-    %p If you want runner to build only specific projects you just need to enable them in table below
+    %p
+      If you want runners to build only specific projects, enable them in the table below.
+      Keep in mind that this is a one way transition.
 - else
   .bs-callout.bs-callout-info
     %h4 This runner will process build only from ASSIGNED projects
-    %p If you want runner to build unassigned projects you just need to disable all assignee projects
+    %p You can't make this a shared runner.
 %hr
 = form_for @runner, url: admin_runner_path(@runner), html: { class: 'form-horizontal' } do |f|
   .form-group
@@ -36,7 +38,7 @@
       Tags
     .col-sm-10
       = f.text_field :tag_list, class: 'form-control'
-      .help-block You can setup jobs to only use runners with specific tags
+      .help-block You can setup builds to only use runners with specific tags
   .form-actions
     = f.submit 'Save', class: 'btn btn-save'
 
@@ -66,7 +68,7 @@
           %th
             .pull-right
               = link_to 'Assign to all', assign_all_admin_runner_path(@runner),
-                class: 'btn btn-small assign-all-runner',
+                class: 'btn btn-sm assign-all-runner',
                 title: 'Assign runner to all projects',
                 method: :put
 

@@ -9,6 +9,7 @@ config/application.yml
 config/database.yml
 config/resque.yml
 config/unicorn.rb
+config/secrets.yml
 config/initializers/smtp_settings.rb
 coverage/*
 log/*
@@ -16,5 +17,5 @@ tmp/*
 /.bundle
 /db/*.sqlite3
 /log/*.log
-/vendor
 /.idea
+/builds/*

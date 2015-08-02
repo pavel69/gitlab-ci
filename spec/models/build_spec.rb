@@ -2,19 +2,23 @@
 #
 # Table name: builds
 #
-#  id          :integer          not null, primary key
-#  project_id  :integer
-#  status      :string(255)
-#  finished_at :datetime
-#  trace       :text
-#  created_at  :datetime
-#  updated_at  :datetime
-#  started_at  :datetime
-#  runner_id   :integer
-#  commit_id   :integer
-#  coverage    :float
-#  commands    :text
-#  job_id      :integer
+#  id            :integer          not null, primary key
+#  project_id    :integer
+#  status        :string(255)
+#  finished_at   :datetime
+#  trace         :text
+#  created_at    :datetime
+#  updated_at    :datetime
+#  started_at    :datetime
+#  runner_id     :integer
+#  commit_id     :integer
+#  coverage      :float
+#  commands      :text
+#  job_id        :integer
+#  name          :string(255)
+#  deploy        :boolean          default(FALSE)
+#  options       :text
+#  allow_failure :boolean          default(FALSE), not null
 #
 
 require 'spec_helper'
@@ -123,6 +127,42 @@ describe Build do
     end
   end
 
+  describe :ignored? do
+    subject { build.ignored? }
+
+    context 'if build is not allowed to fail' do
+      before { build.allow_failure = false }
+
+      context 'and build.status is success' do
+        before { build.status = 'success' }
+
+        it { should be_false }
+      end
+
+      context 'and build.status is failed' do
+        before { build.status = 'failed' }
+
+        it { should be_false }
+      end
+    end
+
+    context 'if build is allowed to fail' do
+      before { build.allow_failure = true }
+
+      context 'and build.status is success' do
+        before { build.status = 'success' }
+
+        it { should be_false }
+      end
+
+      context 'and build.status is failed' do
+        before { build.status = 'failed' }
+
+        it { should be_true }
+      end
+    end
+  end
+
   describe :trace do
     subject { build.trace_html }
 
@@ -166,6 +206,20 @@ describe Build do
       it { should be_a(Float) }
       it { should > 0.0 }
     end
+  end
+
+  describe :options do
+    let(:options) {
+      {
+        :image => "ruby:2.1",
+        :services => [
+          "postgres"
+        ]
+      }
+    }
+
+    subject { build.options }
+    it { should eq(options) }
   end
 
   describe :ref do

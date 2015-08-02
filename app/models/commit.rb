@@ -2,20 +2,21 @@
 #
 # Table name: commits
 #
-#  id         :integer          not null, primary key
-#  project_id :integer
-#  ref        :string(255)
-#  sha        :string(255)
-#  before_sha :string(255)
-#  push_data  :text
-#  created_at :datetime
-#  updated_at :datetime
+#  id          :integer          not null, primary key
+#  project_id  :integer
+#  ref         :string(255)
+#  sha         :string(255)
+#  before_sha  :string(255)
+#  push_data   :text
+#  created_at  :datetime
+#  updated_at  :datetime
+#  tag         :boolean          default(FALSE)
+#  yaml_errors :text
 #
 
 class Commit < ActiveRecord::Base
   belongs_to :project
   has_many :builds, dependent: :destroy
-  has_many :jobs, through: :builds
 
   serialize :push_data
 
@@ -92,50 +93,78 @@ class Commit < ActiveRecord::Base
     recipients.uniq
   end
 
+  def job_type
+    return unless config_processor
+    job_types = builds_without_retry.select(&:active?).map(&:job_type)
+    config_processor.types.find { |job_type| job_types.include? job_type }
+  end
+
+  def create_builds_for_type(job_type)
+    return if skip_ci?
+    return unless config_processor
+
+    builds_attrs = config_processor.builds_for_type_and_ref(job_type, ref, tag)
+    builds_attrs.map do |build_attrs|
+      builds.create!({
+        project: project,
+        name: build_attrs[:name],
+        commands: build_attrs[:script],
+        tag_list: build_attrs[:tags],
+        options: build_attrs[:options],
+        allow_failure: build_attrs[:allow_failure],
+        job_type: build_attrs[:type]
+      })
+    end
+  end
+
+  def create_next_builds
+    return if skip_ci?
+    return unless config_processor
+
+    build_types = builds.group_by(&:job_type)
+
+    config_processor.types.any? do |job_type|
+      !build_types.include?(job_type) && create_builds_for_type(job_type).present?
+    end
+  end
+
   def create_builds
-    project.jobs.where(build_branches: true).active.parallel.map do |job|
-      create_build_from_job(job)
-    end
-  end
+    return if skip_ci?
+    return unless config_processor
 
-  def create_builds_for_tag(ref = '')
-    project.jobs.where(build_tags: true).active.parallel.map do |job|
-      create_build_from_job(job, ref)
+    config_processor.types.any? do |job_type|
+      create_builds_for_type(job_type).present?
     end
-  end
-
-  def create_build_from_job(job, ref = '')
-    build = builds.new(commands: job.commands)
-    build.tag_list = job.tag_list
-    build.project_id = project_id
-    build.job = job
-    build.save
-    build
   end
 
   def builds_without_retry
     @builds_without_retry ||=
       begin
-        grouped_builds = builds.group_by(&:job)
-        grouped_builds.map do |job, builds|
+        grouped_builds = builds.group_by(&:name)
+        grouped_builds.map do |name, builds|
           builds.sort_by(&:id).last
         end
       end
   end
 
-  def retried_builds
-    @retried_builds ||= (builds - builds_without_retry)
-  end
+  def builds_without_retry_sorted
+    return builds_without_retry unless config_processor
 
-  def create_deploy_builds(ref)
-    project.jobs.deploy.active.each do |job|
-      if job.run_for_ref?(ref)
-        create_build_from_job(job)
-      end
+    job_types = config_processor.types
+    builds_without_retry.sort_by do |build|
+      [job_types.index(build.job_type) || -1, build.name || ""]
     end
   end
 
+  def retried_builds
+    @retried_builds ||= (builds.order(id: :desc) - builds_without_retry)
+  end
+
   def status
+    if yaml_errors.present?
+      return 'failed'
+    end
+
     if success?
       'success'
     elsif pending?
@@ -163,7 +192,7 @@ class Commit < ActiveRecord::Base
 
   def success?
     builds_without_retry.all? do |build|
-      build.success?
+      build.success? || build.ignored?
     end
   end
 
@@ -186,12 +215,39 @@ class Commit < ActiveRecord::Base
   end
 
   def coverage
-    if project.coverage_enabled? && builds.size > 0
-      builds.last.coverage
+    if project.coverage_enabled?
+      coverage_array = builds_without_retry.map(&:coverage).compact
+      if coverage_array.size >= 1
+        '%.2f' % (coverage_array.reduce(:+) / coverage_array.size)
+      end
     end
   end
 
   def matrix?
     builds_without_retry.size > 1
+  end
+
+  def config_processor
+    @config_processor ||= GitlabCiYamlProcessor.new(push_data[:ci_yaml_file] || project.generated_yaml_config)
+  rescue GitlabCiYamlProcessor::ValidationError => e
+    save_yaml_error(e.message)
+    nil
+  rescue Exception => e
+    logger.error e.message + "\n" + e.backtrace.join("\n")
+    save_yaml_error("Undefined yaml error")
+    nil
+  end
+
+  def skip_ci?
+    commits = push_data[:commits]
+    commits.present? && commits.last[:message] =~ /(\[ci skip\])/
+  end
+
+  private
+
+  def save_yaml_error(error)
+    return unless self.yaml_errors?
+    self.yaml_errors = error
+    save
   end
 end

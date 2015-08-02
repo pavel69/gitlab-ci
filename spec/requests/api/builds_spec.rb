@@ -3,7 +3,7 @@ require 'spec_helper'
 describe API::API do
   include ApiHelpers
 
-  let(:runner) { FactoryGirl.create(:runner) }
+  let(:runner) { FactoryGirl.create(:runner, tag_list: ["mysql", "ruby"]) }
   let(:project) { FactoryGirl.create(:project) }
 
   describe "Builds API for runners" do
@@ -17,8 +17,8 @@ describe API::API do
     describe "POST /builds/register" do
       it "should start a build" do
         commit = FactoryGirl.create(:commit, project: project)
-        job = FactoryGirl.create :job, project: project
-        build = commit.create_builds.first
+        commit.create_builds
+        build = commit.builds.first
 
         post api("/builds/register"), token: runner.token, info: {platform: :darwin}
 
@@ -49,6 +49,27 @@ describe API::API do
         post api("/builds/register"), token: shared_runner.token
 
         response.status.should == 404
+      end
+
+      it "returns options" do
+        commit = FactoryGirl.create(:commit, project: project)
+        commit.create_builds
+
+        post api("/builds/register"), token: runner.token, info: {platform: :darwin}
+
+        response.status.should == 201
+        json_response["options"].should == {"image" => "ruby:2.1", "services" => ["postgres"]}
+      end
+
+      it "returns variables" do
+        commit = FactoryGirl.create(:commit, project: project)
+        commit.create_builds
+        project.variables << Variable.new(key: "SECRET_KEY", value: "secret_value")
+
+        post api("/builds/register"), token: runner.token, info: {platform: :darwin}
+
+        response.status.should == 201
+        json_response["variables"].should == [{"key" => "SECRET_KEY", "value" => "secret_value"}]
       end
     end
 

@@ -1,6 +1,62 @@
 v7.10.0
   - Projects sorting by last commit date
   - Add project search at runner page
+v7.13.1
+  - Fix: user could steal specific runner
+  - Fix: don't send notifications for jobs with allow_failure set
+  - Fix invalid link to doc.gitlab.com
+
+v7.13.0
+  - Allow to specify image and services in yml that can be used with docker
+  - Fix: No runner notification can see managers only
+  - Ability to cancel all builds in commit at once
+  - Disable colors in rake tasks automatically (if IO is not a TTY)
+  - Implemented "rake env:info". Rake task to receive system information
+  - Fix coverage calculation on commit page
+  - Enhance YAML validation
+  - Redirect back after authorization
+  - Change favicon
+  - Refactoring: Get rid of private_token usage in the frontend.
+  - Allow to specify allow_failure for job
+  - Build traces is stored in the file instead of database
+  - Make the builds path configurable
+  - Disable link to runner if it's not assigned to specific project
+  - Store all secrets in config/secrets.yml
+  - Encrypt variables
+  - Allow to specify flexible list of types in yaml
+
+v7.12.2
+  - Revert: Runner without tag should pick builds without tag only
+
+v7.12.1
+  - Runner without tag should pick builds without tag only
+  - Explicit error in the GitLab when commit not found.
+  - Fix: lint with relative subpath
+  - Update webhook example
+  - Improved Lint stability
+  - Add warning when .gitlab-ci.yml not found
+  - Improved validation for .gitlab-ci.yml
+  - Fix list of branches in only section
+  - Fix "Status Badge" button
+
+v7.12.0
+  - Endless scroll on the dashboard
+  - Add notification if there are no runners
+  - Fix pagination on dashboard
+  - Remove ID column from runners list in the admin area
+  - Increase default timeout for builds to 60 minutes
+  - Using .gitlab-ci.yml file instead of jobs
+  - Link to the runner from the build page for admin user
+  - Ability to set secret variables for runner
+  - Dont retry build when push same commit in same ref twice 
+  - Admin area: show amount of runners with last contact less than a minute ago
+  - Fix re-adding project with the same name but different gitlab_id
+  - Implementation of Lint (.gitlab-ci.yml validation tool)
+  - Updated rails to 4.1.11
+  - API fix: project create call
+  - Link to web-editor with .gitlab-ci.yml
+  - Updated examples in the documentation
+
 v7.11.0
   - Deploy Jobs API calls
   - Projects search on dashboard page

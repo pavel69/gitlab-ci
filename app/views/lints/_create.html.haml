@@ -1,0 +1,39 @@
+- if @status
+  %p
+    %b Status:
+    syntax is correct
+    %i.icon-ok.correct-syntax
+
+  %table.table.table-bordered
+    %thead
+      %tr
+        %th Parameter
+        %th Value
+    %tbody
+      - @types.each do |type|
+        - @builds.select { |build| build[:type] == type }.each do |build|
+          %tr
+            %td #{type.capitalize} Job - #{build[:name]}
+            %td
+              %pre
+                = simple_format build[:script]
+
+              %br
+              %b Tag list:
+              = build[:tags]
+              %br
+              %b Refs only:
+              = build[:only] && build[:only].join(", ")
+              %br
+              %b Refs except:
+              = build[:except] && build[:except].join(", ")
+
+-else
+  %p
+    %b Status:
+    syntax is incorrect
+    %i.icon-remove.incorrect-syntax
+  %b Error:
+  = @error
+
+    

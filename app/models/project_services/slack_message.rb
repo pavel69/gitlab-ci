@@ -22,9 +22,10 @@ class SlackMessage
 
     if commit.matrix?
       commit.builds_without_retry.each do |build|
+        next if build.allow_failure?
         next unless build.failed?
         fields << {
-          title: build.job_name,
+          title: build.name,
           value: "Build <#{RoutesHelper.project_build_url(project, build)}|\##{build.id}> failed in #{build.duration.to_i} second(s)."
         }
       end

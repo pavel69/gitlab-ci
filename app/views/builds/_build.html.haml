@@ -7,23 +7,17 @@
       %strong Build ##{build.id}
 
   %td
-    - if build.job
-      - if build.for_tag?
-        Tag
-        &middot;
-        #{build.ref}
-      - else
-        Commit
-        &middot;
-        #{build.short_sha}
+    = build.job_type
+
   %td
-    = build.job_name
-    - if build.tags.any?
-      .pull-right
+    = build.name
+    .pull-right
+      - if build.tags.any?
         - build.tag_list.each do |tag|
           %span.label.label-primary
             = tag
-
+      - if build.allow_failure
+        %span.label.label-danger allowed to fail
 
   %td.duration
     - if build.duration

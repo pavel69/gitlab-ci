@@ -2,18 +2,19 @@
 #
 # Table name: commits
 #
-#  id         :integer          not null, primary key
-#  project_id :integer
-#  ref        :string(255)
-#  sha        :string(255)
-#  before_sha :string(255)
-#  push_data  :text
-#  created_at :datetime
-#  updated_at :datetime
+#  id          :integer          not null, primary key
+#  project_id  :integer
+#  ref         :string(255)
+#  sha         :string(255)
+#  before_sha  :string(255)
+#  push_data   :text
+#  created_at  :datetime
+#  updated_at  :datetime
+#  tag         :boolean          default(FALSE)
+#  yaml_errors :text
 #
 
 # Read about factories at https://github.com/thoughtbot/factory_girl
-
 FactoryGirl.define do
   factory :commit do
     ref 'master'
@@ -44,8 +45,21 @@ FactoryGirl.define do
             }
           }
         ],
-        total_commits_count: 1
+        total_commits_count: 1,
+        ci_yaml_file: File.read(Rails.root.join('spec/support/gitlab_stubs/gitlab_ci.yml'))
       }
+    end
+
+    factory :commit_with_one_job do
+      after(:create) do |commit, evaluator|
+        commit.push_data[:ci_yaml_file] = YAML.dump({rspec: { script: "ls" }})
+      end
+    end
+
+    factory :commit_with_two_jobs do
+      after(:create) do |commit, evaluator|
+        commit.push_data[:ci_yaml_file] = YAML.dump({rspec: { script: "ls" }, spinach: { script: "ls" }})
+      end
     end
   end
 end

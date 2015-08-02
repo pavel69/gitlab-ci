@@ -6,7 +6,9 @@ this should be the highest numbered stable branch (example shown below).
 
 If this is unclear check the [GitLab Blog](http://blog.gitlab.org/) for installation guide links by version.
 
-## GitLab CI 7.9 requires GitLab 7.9 or newer
+## GitLab CI 7.12 requires GitLab 7.12 or newer
+
+other [requirements](requirements.md)
 
 # Setup:
 
@@ -38,8 +40,8 @@ Install the required packages:
 Download Ruby and compile it:
 
     mkdir /tmp/ruby && cd /tmp/ruby
-    curl --progress http://cache.ruby-lang.org/pub/ruby/2.0/ruby-2.0.0-p353.tar.bz2 | tar xj
-    cd ruby-2.0.0-p353
+    curl --progress http://cache.ruby-lang.org/pub/ruby/ruby-2.1.6.tar.bz2 | tar xj
+    cd ruby-2.1.6/
     ./configure --disable-install-rdoc
     make
     sudo make install
@@ -56,7 +58,7 @@ Install the Bundler Gem:
 
 ## 4. Prepare the database
 
-You can use either MySQL or PostgreSQL.
+We recommend PostgreSQL but you can also use MySQL
 
 ### MySQL
 
@@ -73,7 +75,7 @@ You can use either MySQL or PostgreSQL.
     mysql> CREATE USER 'gitlab_ci'@'localhost' IDENTIFIED BY '$password';
 
     # Grant proper permissions to the MySQL User
-    mysql> GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON `gitlab_ci_production`.* TO 'gitlab_ci'@'localhost';
+    mysql> GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, LOCK TABLES ON `gitlab_ci_production`.* TO 'gitlab_ci'@'localhost';
 
     # Logout MYSQL
     mysql> exit;
@@ -106,7 +108,7 @@ You can use either MySQL or PostgreSQL.
 
     cd gitlab-ci
 
-    sudo -u gitlab_ci -H git checkout 7-9-stable
+    sudo -u gitlab_ci -H git checkout 7-12-stable
 
 ## 6. Setup application
 
@@ -117,6 +119,10 @@ You can use either MySQL or PostgreSQL.
     # Development
     #sudo -u gitlab_ci -H cp config/application.yml.example.development config/application.yml
 
+    # Copy the example secrets file
+    sudo -u gitlab_ci -H cp config/secrets.yml.example config/secrets.yml
+    sudo -u gitlab_ci -H chmod 0600 config/secrets.yml
+
     # Edit web server settings
     sudo -u gitlab_ci -H cp config/unicorn.rb.example config/unicorn.rb
     sudo -u gitlab_ci -H editor config/unicorn.rb
@@ -126,6 +132,9 @@ You can use either MySQL or PostgreSQL.
     sudo chmod -R u+rwX  tmp/sockets/
     sudo -u gitlab_ci -H mkdir -p tmp/pids/
     sudo chmod -R u+rwX  tmp/pids/
+
+    # Change the permissions of the directory where build traces are stored
+    sudo chmod -R u+rwX builds/
 
 ### Install gems
 
@@ -152,8 +161,13 @@ You can use either MySQL or PostgreSQL.
     # Setup schedules
     sudo -u gitlab_ci -H bundle exec whenever -w RAILS_ENV=production
 
+### Secure secrets.yml
 
-## 7. Install Init Script
+The `secrets.yml` file stores encryption keys for sessions and secure variables.
+Backup `secrets.yml` someplace safe, but don't store it in the same place as your database backups.
+Otherwise your secrets are exposed if one of your backups is compromised.
+
+## 8. Install Init Script
 
 Copy the init script (will be /etc/init.d/gitlab_ci):
 

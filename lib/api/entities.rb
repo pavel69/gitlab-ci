@@ -7,9 +7,15 @@ module API
       expose :builds
     end
 
+    class Variable < Grape::Entity
+      expose :key, :value
+    end
+
     class Build < Grape::Entity
       expose :id, :commands, :path, :ref, :sha, :project_id, :repo_url,
-        :before_sha, :timeout, :allow_git_fetch, :project_name
+        :before_sha, :timeout, :allow_git_fetch, :project_name, :options
+
+      expose :variables, using: Variable
     end
 
     class Runner < Grape::Entity
@@ -27,11 +33,6 @@ module API
 
     class WebHook < Grape::Entity
       expose :id, :project_id, :url
-    end
-
-    class Job < Grape::Entity
-      expose :id, :project_id, :commands, :active, :name, :build_branches,
-        :build_tags, :tags, :job_type, :tag_list
     end
 
     class DeployJob < Grape::Entity

@@ -8,10 +8,14 @@ def linux_only(require_as)
   RUBY_PLATFORM.include?('linux') && require_as
 end
 
-gem 'rails', '4.1.9'
+gem 'rails', '4.1.12'
 gem 'activerecord-deprecated_finders'
 gem 'activerecord-session_store'
 gem "nested_form"
+
+# Specify a sprockets version due to security issue
+# See https://groups.google.com/forum/#!topic/rubyonrails-security/doAVp0YaTqY
+gem 'sprockets', '~> 2.12.3'
 
 # tag runners
 gem 'acts-as-taggable-on', '~> 3.4'
@@ -66,13 +70,16 @@ gem "slack-notifier", "~> 1.0.0"
 # HipChat integration
 gem 'hipchat', '~> 1.5.0'
 
+# Encrypt variables
+gem 'attr_encrypted', '1.3.4'
+
 # Other
 gem 'rake'
 gem 'foreman'
-gem 'jquery-rails'
+gem 'jquery-rails', '~> 3.1.3'
 gem 'gitlab_ci_meta', '~> 4.0'
 
-gem 'sass-rails',   '~> 4.0.0'
+gem 'sass-rails',   '~> 4.0.5'
 gem 'coffee-rails', '~> 4.0.0'
 
 gem 'uglifier', '>= 1.0.3'
@@ -88,6 +95,10 @@ gem "paranoia", "~> 2.0"
 # Colored output to console
 gem "colored"
 
+# for aws storage
+gem "fog", "~> 1.25.0"
+gem "unf"
+
 
 group :development do
   gem 'brakeman', require: false
@@ -100,6 +111,7 @@ end
 
 
 group :development, :test do
+  gem 'spring', '~> 1.3.6'
   gem 'minitest'
   gem 'pry'
   gem 'rspec-rails'
@@ -116,7 +128,7 @@ group :development, :test do
   gem 'rb-inotify', require: linux_only('rb-inotify')
 
   gem "simplecov", require: false
-  gem 'coveralls', require: false
+  gem 'coveralls', '~> 0.8.2', require: false
   gem 'rubocop', '0.28.0', require: false
 end
 

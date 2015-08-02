@@ -1,5 +1,10 @@
 = render 'shared/guide' unless @project.setup_finished?
 
+- if current_user && current_user.can_manage_project?(@project.gitlab_id) && !@project.any_runners?
+  .alert.alert-danger
+    Builds for this project wont be served unless you configure runners on
+    = link_to "Runners page", project_runners_path(@project)
+
 %ul.nav.nav-tabs.append-bottom-20
   %li{class: ref_tab_class}
     = link_to 'All commits', project_path(@project)

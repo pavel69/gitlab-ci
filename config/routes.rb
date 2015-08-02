@@ -5,6 +5,8 @@ Rails.application.routes.draw do
   API::API.logger Rails.logger
   mount API::API => '/api'
 
+  resource :lint, only: [:show, :create]
+
   resource :help do
     get :oauth2
   end
@@ -20,6 +22,7 @@ Rails.application.routes.draw do
       get :integration
       post :build
       post :toggle_shared_runners
+      get :dumped_yaml
     end
 
     resources :services, only: [:index, :edit, :update] do
@@ -34,6 +37,7 @@ Rails.application.routes.draw do
       resources :commits, only: [:show] do
         member do
           get :status
+          get :cancel
         end
       end
     end
@@ -61,13 +65,8 @@ Rails.application.routes.draw do
 
     resources :runner_projects, only: [:create, :destroy]
 
-    resources :jobs, only: [:index] do
-      collection do
-        get :deploy_jobs
-      end
-    end
-
     resources :events, only: [:index]
+    resources :variables, only: [:index]
   end
 
   resource :user_sessions do

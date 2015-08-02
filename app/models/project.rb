@@ -4,7 +4,7 @@
 #
 #  id                       :integer          not null, primary key
 #  name                     :string(255)      not null
-#  timeout                  :integer          default(1800), not null
+#  timeout                  :integer          default(3600), not null
 #  created_at               :datetime
 #  updated_at               :datetime
 #  token                    :string(255)
@@ -22,6 +22,7 @@
 #  skip_refs                :string(255)
 #  coverage_regex           :string(255)
 #  shared_runners_enabled   :boolean          default(FALSE)
+#  generated_yaml_config    :text
 #
 
 class Project < ActiveRecord::Base
@@ -32,8 +33,8 @@ class Project < ActiveRecord::Base
   has_many :runner_projects, dependent: :destroy
   has_many :runners, through: :runner_projects
   has_many :web_hooks, dependent: :destroy
-  has_many :jobs, dependent: :destroy
   has_many :events, dependent: :destroy
+  has_many :variables, dependent: :destroy
 
   # Project services
   has_many :services, dependent: :destroy
@@ -41,7 +42,7 @@ class Project < ActiveRecord::Base
   has_one :slack_service, dependent: :destroy
   has_one :mail_service, dependent: :destroy
 
-  accepts_nested_attributes_for :jobs, allow_destroy: true
+  accepts_nested_attributes_for :variables, allow_destroy: true
 
   #
   # Validations
@@ -49,13 +50,11 @@ class Project < ActiveRecord::Base
   validates_presence_of :name, :timeout, :token, :default_ref,
     :path, :ssh_url_to_repo, :gitlab_id
 
-  validates_uniqueness_of :name
+  validates_uniqueness_of :gitlab_id
 
   validates :polling_interval,
     presence: true,
     if: ->(project) { project.always_build.present? }
-
-  validate :validate_jobs
 
   scope :public_only, ->() { where(public: true) }
 
@@ -69,13 +68,7 @@ ls -la
       eos
     end
 
-    def parse(project_params)
-      project = if project_params.is_a?(String)
-                  YAML.load(project_params)
-                else
-                  project_params
-                end
-
+    def parse(project)
       params = {
         name:                    project.name_with_namespace,
         gitlab_id:               project.id,
@@ -92,7 +85,12 @@ ls -la
     end
 
     def from_gitlab(user, scope = :owned, options)
-      opts = { private_token: user.private_token }
+      opts = if user.access_token
+               { access_token: user.access_token }
+             else
+               { private_token: user.private_token }
+             end
+      
       opts.merge! options
 
       projects = Network.new.projects(opts.compact, scope)
@@ -124,6 +122,14 @@ ls -la
       where('LOWER(projects.name) LIKE :query',
             query: "%#{query.try(:downcase)}%")
     end
+  end
+
+  def any_runners?
+    if runners.active.any?
+      return true
+    end
+
+    shared_runners_enabled && Runner.shared.active.any?
   end
 
   def set_default_values
@@ -163,37 +169,8 @@ ls -la
     self.timeout = value.to_i * 60
   end
 
-  def skip_ref?(ref_name)
-    if skip_refs.present?
-      skip_refs.delete(" ").split(",").each do |ref|
-        return true if File.fnmatch(ref, ref_name)
-      end
-
-      false
-    else
-      false
-    end
-  end
-
-  def create_commit_for_tag?(tag)
-    jobs.where(build_tags: true).active.parallel.any? ||
-    jobs.active.deploy.any?{ |job| job.run_for_ref?(tag)}
-  end
-
   def coverage_enabled?
     coverage_regex.present?
-  end
-
-  def build_default_job
-    jobs.build(commands: Project.base_build_script)
-  end
-
-  def validate_jobs
-    remaining_jobs = jobs.reject(&:marked_for_destruction?)
-
-    if remaining_jobs.empty?
-      errors.add(:jobs, "At least one foo")
-    end
   end
 
   # Build a clone-able repo url

@@ -1,11 +1,11 @@
 class ProjectsController < ApplicationController
-  PROJECTS_PER_PAGE = 100
+  PROJECTS_BATCH = 100
 
   before_filter :authenticate_user!, except: [:build, :badge, :index, :show]
   before_filter :authenticate_public_page!, only: :show
-  before_filter :project, only: [:build, :integration, :show, :badge, :edit, :update, :destroy, :toggle_shared_runners]
+  before_filter :project, only: [:build, :integration, :show, :badge, :edit, :update, :destroy, :toggle_shared_runners, :dumped_yaml]
   before_filter :authorize_access_project!, except: [:build, :gitlab, :badge, :index, :show, :new, :create]
-  before_filter :authorize_manage_project!, only: [:edit, :integration, :update, :destroy, :toggle_shared_runners]
+  before_filter :authorize_manage_project!, only: [:edit, :integration, :update, :destroy, :toggle_shared_runners, :dumped_yaml]
   before_filter :authenticate_token!, only: [:build]
   before_filter :no_cache, only: [:badge]
   protect_from_forgery except: :build
@@ -17,13 +17,20 @@ class ProjectsController < ApplicationController
   end
 
   def gitlab
+    @limit, @offset = (params[:limit] || PROJECTS_BATCH).to_i, (params[:offset] || 0).to_i
+    @page = @offset == 0 ? 1 : (@offset / @limit + 1)
+
     current_user.reset_cache if params[:reset_cache]
-    @page = (params[:page] || 1).to_i
-    @per_page = PROJECTS_PER_PAGE
-    @gl_projects = current_user.gitlab_projects(params[:search], @page, @per_page)
+
+    @gl_projects = current_user.gitlab_projects(params[:search], @page, @limit)
     @projects = Project.where(gitlab_id: @gl_projects.map(&:id)).ordered_by_last_commit_date
     @total_count = @gl_projects.size
     @gl_projects.reject! { |gl_project| @projects.map(&:gitlab_id).include?(gl_project.id) }
+    respond_to do |format|
+      format.json do
+        pager_json("projects/gitlab", @total_count)
+      end
+    end
   rescue Network::UnauthorizedError
     raise
   rescue
@@ -42,11 +49,13 @@ class ProjectsController < ApplicationController
   end
 
   def create
-    unless current_user.can_manage_project?(YAML.load(params["project"])[:id])
+    project_data = OpenStruct.new(JSON.parse(params["project"]))
+
+    unless current_user.can_manage_project?(project_data.id)
       return redirect_to root_path, alert: 'You have to have at least master role to enable CI for this project'
     end
 
-    @project = CreateProjectService.new.execute(current_user, params[:project], project_url(":project_id"))
+    @project = CreateProjectService.new.execute(current_user, project_data, project_url(":project_id"))
 
     if @project.persisted?
       redirect_to project_path(@project, show_guide: true), notice: 'Project was successfully created.'
@@ -70,7 +79,7 @@ class ProjectsController < ApplicationController
 
   def destroy
     project.destroy
-    Network.new.disable_ci(project.gitlab_id, current_user.private_token)
+    Network.new.disable_ci(project.gitlab_id, current_user.access_token)
 
     EventService.new.remove_project(current_user, project)
 
@@ -95,12 +104,16 @@ class ProjectsController < ApplicationController
   def badge
     image = ImageForBuildService.new.execute(@project, params)
 
-    send_file image.path, filename: image.name, disposition: 'inline'
+    send_file image.path, filename: image.name, disposition: 'inline', type:"image/svg+xml"
   end
 
   def toggle_shared_runners
     project.toggle!(:shared_runners_enabled)
     redirect_to :back
+  end
+
+  def dumped_yaml
+    send_data @project.generated_yaml_config, filename: '.gitlab-ci.yml'
   end
 
   protected
@@ -117,8 +130,8 @@ class ProjectsController < ApplicationController
 
   def project_params
     params.require(:project).permit(:path, :timeout, :timeout_in_minutes, :default_ref, :always_build,
-      :polling_interval, :public, :ssh_url_to_repo, :allow_git_fetch, :skip_refs, :email_recipients,
+      :polling_interval, :public, :ssh_url_to_repo, :allow_git_fetch, :email_recipients,
       :email_add_pusher, :email_only_broken_builds, :coverage_regex, :shared_runners_enabled, :token,
-      { jobs_attributes: [:id, :name, :build_branches, :build_tags, :tag_list, :commands, :refs, :_destroy, :job_type] })
+      { variables_attributes: [:id, :key, :value, :_destroy] })
   end
 end

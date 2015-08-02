@@ -15,7 +15,7 @@ module Backup
           file << s.to_yaml.gsub(/^---\n/,'')
         end
 
-        FileUtils.chmod(0700, "db")
+        FileUtils.chmod(0700, ["db", "builds"])
 
         # create archive
         $progress.print "Creating backup archive: #{tar_file} ... "
@@ -45,7 +45,8 @@ module Backup
       connection = ::Fog::Storage.new(connection_settings)
       directory = connection.directories.get(remote_directory)
 
-      if directory.files.create(key: tar_file, body: File.open(tar_file), public: false)
+      if directory.files.create(key: tar_file, body: File.open(tar_file), public: false,
+          multipart_chunk_size: GitlabCi.config.backup.upload.multipart_chunk_size)
         $progress.puts "done".green
       else
         puts "uploading backup to #{remote_directory} failed".red
@@ -145,7 +146,7 @@ module Backup
     private
 
     def backup_contents
-      ["db", "backup_information.yml"]
+      ["db", "builds", "backup_information.yml"]
     end
 
     def settings

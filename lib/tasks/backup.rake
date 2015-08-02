@@ -5,8 +5,11 @@ namespace :backup do
     configure_cron_mode
 
     $progress.puts "Dumping database ... ".blue
-
     Backup::Database.new.dump
+    $progress.puts "done".green
+
+    $progress.puts "Dumping builds ... ".blue
+    Backup::Builds.new.dump
     $progress.puts "done".green
 
     backup = Backup::Manager.new
@@ -26,6 +29,10 @@ namespace :backup do
     Backup::Database.new.restore
     $progress.puts "done".green
 
+    $progress.puts "Restoring builds ... ".blue
+    Backup::Builds.new.restore
+    $progress.puts "done".green
+
     backup.cleanup
   end
 
@@ -41,3 +48,13 @@ namespace :backup do
   end
 end
 
+# Disable colors for CRON
+unless STDOUT.isatty
+  module Colored
+    extend self
+
+    def colorize(string, options={})
+      string
+    end
+  end
+end
