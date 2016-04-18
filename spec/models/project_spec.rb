@@ -54,10 +54,28 @@ describe Project do
       oldest_project = FactoryGirl.create :project
       project_without_commits = FactoryGirl.create :project
 
-      FactoryGirl.create :commit, created_at: 1.hour.ago, project: newest_project
-      FactoryGirl.create :commit, created_at: 2.hour.ago, project: oldest_project
+      FactoryGirl.create :commit, committed_at: 1.hour.ago, project: newest_project
+      FactoryGirl.create :commit, committed_at: 2.hour.ago, project: oldest_project
 
       Project.ordered_by_last_commit_date.should == [newest_project, oldest_project, project_without_commits]
+    end
+  end
+
+  describe 'ordered commits' do
+    let (:project) { FactoryGirl.create :project }
+
+    it 'returns ordered list of commits' do
+      commit1 = FactoryGirl.create :commit, committed_at: 1.hour.ago, project: project
+      commit2 = FactoryGirl.create :commit, committed_at: 2.hour.ago, project: project
+      project.commits.should == [commit2, commit1]
+    end
+
+    it 'returns commits ordered by committed_at and id, with nulls last' do
+      commit1 = FactoryGirl.create :commit, committed_at: 1.hour.ago, project: project
+      commit2 = FactoryGirl.create :commit, committed_at: nil, project: project
+      commit3 = FactoryGirl.create :commit, committed_at: 2.hour.ago, project: project
+      commit4 = FactoryGirl.create :commit, committed_at: nil, project: project
+      project.commits.should == [commit2, commit4, commit3, commit1]
     end
   end
 

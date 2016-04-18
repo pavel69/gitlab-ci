@@ -40,9 +40,9 @@ class ProjectsController < ApplicationController
   def show
     @ref = params[:ref]
 
-    @commits = @project.commits
+    @commits = @project.commits.reverse_order
     @commits = @commits.where(ref: @ref) if @ref
-    @commits = @commits.order('id DESC').page(params[:page]).per(20)
+    @commits = @commits.page(params[:page]).per(20)
   end
 
   def integration
@@ -79,7 +79,7 @@ class ProjectsController < ApplicationController
 
   def destroy
     project.destroy
-    Network.new.disable_ci(project.gitlab_id, current_user.access_token)
+    Network.new.disable_ci(project.gitlab_id, current_user.authenticate_options)
 
     EventService.new.remove_project(current_user, project)
 

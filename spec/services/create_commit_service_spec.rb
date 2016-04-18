@@ -60,6 +60,7 @@ describe CreateCommitService do
           ci_yaml_file: gitlab_ci_yaml
         )
         commit.builds.any?.should be_false
+        commit.status.should == "skipped"
       end
 
       it "does not skips builds creation if there is no [ci skip] tag in commit message" do
@@ -74,6 +75,19 @@ describe CreateCommitService do
         )
         
         commit.builds.first.name.should == "staging"
+      end
+
+      it "skips builds creation if there is [ci skip] tag in commit message and yaml is invalid" do
+        commits = [{message: "some message[ci skip]"}]
+        commit = service.execute(project,
+                                 ref: 'refs/tags/0_1',
+                                 before: '00000000',
+                                 after: '31das312',
+                                 commits: commits,
+                                 ci_yaml_file: "invalid: file"
+        )
+        commit.builds.any?.should be_false
+        commit.status.should == "skipped"
       end
     end
 
@@ -96,6 +110,21 @@ describe CreateCommitService do
         ci_yaml_file: gitlab_ci_yaml
       )
       commit.builds.count(:all).should == 2
+    end
+
+    it "creates commit with failed status if yaml is invalid" do
+      commits = [{message: "some message"}]
+
+      commit = service.execute(project,
+                               ref: 'refs/tags/0_1',
+                               before: '00000000',
+                               after: '31das312',
+                               commits: commits,
+                               ci_yaml_file: "invalid: file"
+      )
+
+      commit.status.should == "failed"
+      commit.builds.any?.should be_false
     end
   end
 end

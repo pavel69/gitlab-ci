@@ -28,13 +28,14 @@
 class Project < ActiveRecord::Base
   include ProjectStatus
 
-  has_many :commits, dependent: :destroy
+  has_many :commits, ->() { order('CASE WHEN commits.committed_at IS NULL THEN 0 ELSE 1 END', :committed_at, :id) }, dependent: :destroy
   has_many :builds, through: :commits, dependent: :destroy
   has_many :runner_projects, dependent: :destroy
   has_many :runners, through: :runner_projects
   has_many :web_hooks, dependent: :destroy
   has_many :events, dependent: :destroy
   has_many :variables, dependent: :destroy
+  has_many :triggers, dependent: :destroy
 
   # Project services
   has_many :services, dependent: :destroy
@@ -61,6 +62,8 @@ class Project < ActiveRecord::Base
   before_validation :set_default_values
 
   class << self
+    include CurrentSettings
+
     def base_build_script
       <<-eos
 git submodule update --init
@@ -70,13 +73,13 @@ ls -la
 
     def parse(project)
       params = {
-        name:                    project.name_with_namespace,
-        gitlab_id:               project.id,
-        path:                    project.path_with_namespace,
-        default_ref:             project.default_branch || 'master',
-        ssh_url_to_repo:         project.ssh_url_to_repo,
-        email_add_pusher:        GitlabCi.config.gitlab_ci.add_pusher,
-        email_only_broken_builds: GitlabCi.config.gitlab_ci.all_broken_builds,
+        name:                     project.name_with_namespace,
+        gitlab_id:                project.id,
+        path:                     project.path_with_namespace,
+        default_ref:              project.default_branch || 'master',
+        ssh_url_to_repo:          project.ssh_url_to_repo,
+        email_add_pusher:         current_application_settings.add_pusher,
+        email_only_broken_builds: current_application_settings.all_broken_builds,
       }
 
       project = Project.new(params)
@@ -85,12 +88,7 @@ ls -la
     end
 
     def from_gitlab(user, scope = :owned, options)
-      opts = if user.access_token
-               { access_token: user.access_token }
-             else
-               { private_token: user.private_token }
-             end
-      
+      opts = user.authenticate_options
       opts.merge! options
 
       projects = Network.new.projects(opts.compact, scope)
@@ -113,9 +111,9 @@ ls -la
     end
 
     def ordered_by_last_commit_date
-      last_commit_subquery = "(SELECT project_id, MAX(created_at) created_at FROM commits GROUP BY project_id)"
+      last_commit_subquery = "(SELECT project_id, MAX(committed_at) committed_at FROM commits GROUP BY project_id)"
       joins("LEFT JOIN #{last_commit_subquery} AS last_commit ON projects.id = last_commit.project_id").
-        order("CASE WHEN last_commit.created_at IS NULL THEN 1 ELSE 0 END, last_commit.created_at DESC")
+        order("CASE WHEN last_commit.committed_at IS NULL THEN 1 ELSE 0 END, last_commit.committed_at DESC")
     end
 
     def search(query)
@@ -202,7 +200,7 @@ ls -la
 
       # Call service hook only if it is active
       begin
-        service.execute(data) if service.active
+        service.execute(data) if service.active && service.can_execute?(data)
       rescue => e
         logger.error(e)
       end

@@ -37,21 +37,13 @@ Settings.gitlab_ci['relative_url_root']   ||= ENV['RAILS_RELATIVE_URL_ROOT'] || 
 Settings.gitlab_ci['protocol']            ||= Settings.gitlab_ci.https ? "https" : "http"
 Settings.gitlab_ci['email_from']          ||= "gitlab-ci@#{Settings.gitlab_ci.host}"
 Settings.gitlab_ci['support_email']       ||= Settings.gitlab_ci.email_from
-Settings.gitlab_ci['all_broken_builds'] = true if Settings.gitlab_ci['all_broken_builds'].nil?
-Settings.gitlab_ci['add_pusher']     = false if Settings.gitlab_ci['add_pusher'].nil?
+Settings.gitlab_ci['all_broken_builds']   = true if Settings.gitlab_ci['all_broken_builds'].nil?
+Settings.gitlab_ci['add_pusher']          = false if Settings.gitlab_ci['add_pusher'].nil?
 Settings.gitlab_ci['url']                 ||= Settings.send(:build_gitlab_ci_url)
 Settings.gitlab_ci['builds_path']         = File.expand_path(Settings.gitlab_ci['builds_path'] || "builds/", Rails.root)
 
 # Compatibility with old config
 Settings['gitlab_server_urls'] ||= Settings['allowed_gitlab_urls']
-
-#
-# Gravatar
-#
-Settings['gravatar'] ||= Settingslogic.new({})
-Settings.gravatar['enabled']     = true if Settings.gravatar['enabled'].nil?
-Settings.gravatar['plain_url'] ||= 'http://www.gravatar.com/avatar/%{hash}?s=%{size}&d=mm'
-Settings.gravatar['ssl_url']   ||= 'https://secure.gravatar.com/avatar/%{hash}?s=%{size}&d=mm'
 
 #
 # Backup

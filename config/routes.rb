@@ -56,6 +56,8 @@ Rails.application.routes.draw do
       end
     end
 
+    resources :triggers, only: [:index, :create, :destroy]
+
     resources :runners, only: [:index, :edit, :update, :destroy, :show] do
       member do
         get :resume
@@ -66,7 +68,7 @@ Rails.application.routes.draw do
     resources :runner_projects, only: [:create, :destroy]
 
     resources :events, only: [:index]
-    resources :variables, only: [:index]
+    resource :variables, only: [:show, :update]
   end
 
   resource :user_sessions do
@@ -90,6 +92,8 @@ Rails.application.routes.draw do
     end
 
     resources :builds, only: :index
+
+    resource :application_settings, only: [:show, :update]
   end
 
   root to: 'projects#index'

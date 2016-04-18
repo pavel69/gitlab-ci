@@ -69,7 +69,28 @@ describe API::API do
         post api("/builds/register"), token: runner.token, info: {platform: :darwin}
 
         response.status.should == 201
-        json_response["variables"].should == [{"key" => "SECRET_KEY", "value" => "secret_value"}]
+        json_response["variables"].should == [
+          {"key" => "DB_NAME", "value" => "postgres", "public" => true},
+          {"key" => "SECRET_KEY", "value" => "secret_value", "public" => false},
+        ]
+      end
+
+      it "returns variables for triggers" do
+        trigger = FactoryGirl.create(:trigger, project: project)
+        commit = FactoryGirl.create(:commit, project: project)
+
+        trigger_request = FactoryGirl.create(:trigger_request_with_variables, commit: commit, trigger: trigger)
+        commit.create_builds(trigger_request)
+        project.variables << Variable.new(key: "SECRET_KEY", value: "secret_value")
+
+        post api("/builds/register"), token: runner.token, info: {platform: :darwin}
+
+        response.status.should == 201
+        json_response["variables"].should == [
+          {"key" => "DB_NAME", "value" => "postgres", "public" => true},
+          {"key" => "SECRET_KEY", "value" => "secret_value", "public" => false},
+          {"key" => "TRIGGER_KEY", "value" => "TRIGGER_VALUE", "public" => false},
+        ]
       end
     end
 

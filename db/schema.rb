@@ -11,10 +11,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150721204649) do
+ActiveRecord::Schema.define(version: 20150824202238) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "application_settings", force: true do |t|
+    t.boolean  "all_broken_builds"
+    t.boolean  "add_pusher"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
 
   create_table "builds", force: true do |t|
     t.integer  "project_id"
@@ -30,10 +37,11 @@ ActiveRecord::Schema.define(version: 20150721204649) do
     t.text     "commands"
     t.integer  "job_id"
     t.string   "name"
-    t.boolean  "deploy",        default: false
+    t.boolean  "deploy",             default: false
     t.text     "options"
-    t.boolean  "allow_failure", default: false, null: false
-    t.string   "job_type"
+    t.boolean  "allow_failure",      default: false, null: false
+    t.string   "stage"
+    t.integer  "trigger_request_id"
   end
 
   add_index "builds", ["commit_id"], name: "index_builds_on_commit_id", using: :btree
@@ -49,10 +57,13 @@ ActiveRecord::Schema.define(version: 20150721204649) do
     t.text     "push_data"
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.boolean  "tag",         default: false
+    t.boolean  "tag",          default: false
     t.text     "yaml_errors"
+    t.datetime "committed_at"
   end
 
+  add_index "commits", ["project_id", "committed_at", "id"], name: "index_commits_on_project_id_and_committed_at_and_id", using: :btree
+  add_index "commits", ["project_id", "committed_at"], name: "index_commits_on_project_id_and_committed_at", using: :btree
   add_index "commits", ["project_id", "sha"], name: "index_commits_on_project_id_and_sha", using: :btree
   add_index "commits", ["project_id"], name: "index_commits_on_project_id", using: :btree
   add_index "commits", ["sha"], name: "index_commits_on_sha", using: :btree
@@ -176,6 +187,24 @@ ActiveRecord::Schema.define(version: 20150721204649) do
   end
 
   add_index "tags", ["name"], name: "index_tags_on_name", unique: true, using: :btree
+
+  create_table "trigger_requests", force: true do |t|
+    t.integer  "trigger_id", null: false
+    t.text     "variables"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.integer  "commit_id"
+  end
+
+  create_table "triggers", force: true do |t|
+    t.string   "token"
+    t.integer  "project_id", null: false
+    t.datetime "deleted_at"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "triggers", ["deleted_at"], name: "index_triggers_on_deleted_at", using: :btree
 
   create_table "variables", force: true do |t|
     t.integer "project_id",           null: false

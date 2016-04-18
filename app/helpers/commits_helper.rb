@@ -7,6 +7,8 @@ module CommitsHelper
       'alert-success'
     when 'failed', 'canceled'
       'alert-danger'
+    when 'skipped'
+      'alert-disabled'
     else
       'alert-warning'
     end
@@ -14,5 +16,9 @@ module CommitsHelper
 
   def commit_link(commit)
     link_to(commit.short_sha, project_ref_commit_path(commit.project, commit.ref, commit.sha))
+  end
+
+  def truncate_first_line(message, length = 50)
+    truncate(message.each_line.first.chomp, length: length) if message
   end
 end

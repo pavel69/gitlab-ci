@@ -4,18 +4,17 @@ module API
       expose :id, :ref, :sha, :project_id, :before_sha, :created_at
       expose :status, :finished_at, :duration
       expose :git_commit_message, :git_author_name, :git_author_email
-      expose :builds
     end
 
-    class Variable < Grape::Entity
-      expose :key, :value
+    class CommitWithBuilds < Commit
+      expose :builds
     end
 
     class Build < Grape::Entity
       expose :id, :commands, :path, :ref, :sha, :project_id, :repo_url,
         :before_sha, :timeout, :allow_git_fetch, :project_name, :options
 
-      expose :variables, using: Variable
+      expose :variables
     end
 
     class Runner < Grape::Entity
@@ -35,9 +34,9 @@ module API
       expose :id, :project_id, :url
     end
 
-    class DeployJob < Grape::Entity
-      expose :id, :project_id, :commands, :active, :name,
-        :refs, :tags, :job_type, :refs, :tag_list
+    class TriggerRequest < Grape::Entity
+      expose :id, :variables
+      expose :commit, using: Commit
     end
   end
 end

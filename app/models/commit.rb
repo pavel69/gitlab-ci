@@ -2,21 +2,23 @@
 #
 # Table name: commits
 #
-#  id          :integer          not null, primary key
-#  project_id  :integer
-#  ref         :string(255)
-#  sha         :string(255)
-#  before_sha  :string(255)
-#  push_data   :text
-#  created_at  :datetime
-#  updated_at  :datetime
-#  tag         :boolean          default(FALSE)
-#  yaml_errors :text
+#  id           :integer          not null, primary key
+#  project_id   :integer
+#  ref          :string(255)
+#  sha          :string(255)
+#  before_sha   :string(255)
+#  push_data    :text
+#  created_at   :datetime
+#  updated_at   :datetime
+#  tag          :boolean          default(FALSE)
+#  yaml_errors  :text
+#  committed_at :datetime
 #
 
 class Commit < ActiveRecord::Base
   belongs_to :project
   has_many :builds, dependent: :destroy
+  has_many :trigger_requests, dependent: :destroy
 
   serialize :push_data
 
@@ -93,17 +95,17 @@ class Commit < ActiveRecord::Base
     recipients.uniq
   end
 
-  def job_type
+  def stage
     return unless config_processor
-    job_types = builds_without_retry.select(&:active?).map(&:job_type)
-    config_processor.types.find { |job_type| job_types.include? job_type }
+    stages = builds_without_retry.select(&:active?).map(&:stage)
+    config_processor.stages.find { |stage| stages.include? stage }
   end
 
-  def create_builds_for_type(job_type)
-    return if skip_ci?
+  def create_builds_for_stage(stage, trigger_request)
+    return if skip_ci? && trigger_request.blank?
     return unless config_processor
 
-    builds_attrs = config_processor.builds_for_type_and_ref(job_type, ref, tag)
+    builds_attrs = config_processor.builds_for_stage_and_ref(stage, ref, tag)
     builds_attrs.map do |build_attrs|
       builds.create!({
         project: project,
@@ -112,28 +114,29 @@ class Commit < ActiveRecord::Base
         tag_list: build_attrs[:tags],
         options: build_attrs[:options],
         allow_failure: build_attrs[:allow_failure],
-        job_type: build_attrs[:type]
+        stage: build_attrs[:stage],
+        trigger_request: trigger_request,
       })
     end
   end
 
-  def create_next_builds
-    return if skip_ci?
+  def create_next_builds(trigger_request)
+    return if skip_ci? && trigger_request.blank?
     return unless config_processor
 
-    build_types = builds.group_by(&:job_type)
+    stages = builds.where(trigger_request: trigger_request).group_by(&:stage)
 
-    config_processor.types.any? do |job_type|
-      !build_types.include?(job_type) && create_builds_for_type(job_type).present?
+    config_processor.stages.any? do |stage|
+      !stages.include?(stage) && create_builds_for_stage(stage, trigger_request).present?
     end
   end
 
-  def create_builds
-    return if skip_ci?
+  def create_builds(trigger_request = nil)
+    return if skip_ci? && trigger_request.blank?
     return unless config_processor
 
-    config_processor.types.any? do |job_type|
-      create_builds_for_type(job_type).present?
+    config_processor.stages.any? do |stage|
+      create_builds_for_stage(stage, trigger_request).present?
     end
   end
 
@@ -150,9 +153,9 @@ class Commit < ActiveRecord::Base
   def builds_without_retry_sorted
     return builds_without_retry unless config_processor
 
-    job_types = config_processor.types
+    stages = config_processor.stages
     builds_without_retry.sort_by do |build|
-      [job_types.index(build.job_type) || -1, build.name || ""]
+      [stages.index(build.stage) || -1, build.name || ""]
     end
   end
 
@@ -161,11 +164,13 @@ class Commit < ActiveRecord::Base
   end
 
   def status
-    if yaml_errors.present?
+    if skip_ci?
+      return 'skipped'
+    elsif yaml_errors.present?
       return 'failed'
-    end
-
-    if success?
+    elsif builds.none?
+      return 'skipped'
+    elsif success?
       'success'
     elsif pending?
       'pending'
@@ -239,14 +244,19 @@ class Commit < ActiveRecord::Base
   end
 
   def skip_ci?
+    return false if builds.any?
     commits = push_data[:commits]
     commits.present? && commits.last[:message] =~ /(\[ci skip\])/
+  end
+
+  def update_committed!
+    update!(committed_at: DateTime.now)
   end
 
   private
 
   def save_yaml_error(error)
-    return unless self.yaml_errors?
+    return if self.yaml_errors?
     self.yaml_errors = error
     save
   end

@@ -22,6 +22,10 @@ class User
     end
   end
 
+  def avatar_url
+    attributes['avatar_url']
+  end
+
   def cache_key(*args)
     "#{self.id}:#{args.join(":")}:#{sync_at.to_s}"
   end
@@ -56,12 +60,8 @@ class User
   end
 
   def can_manage_project?(project_gitlab_id)
-    opts = {
-      access_token: self.access_token,
-    }
-
     Rails.cache.fetch(cache_key('manage', project_gitlab_id, sync_at)) do
-      !!Network.new.project_hooks(opts, project_gitlab_id)
+      !!Network.new.project_hooks(authenticate_options, project_gitlab_id)
     end
   end
 
@@ -77,15 +77,19 @@ class User
     end
   end
 
+  def authenticate_options
+    if attributes['access_token']
+      { access_token: attributes['access_token'] }
+    else
+      { private_token: attributes['private_token'] }
+    end
+  end
+
   private
 
   def project_info(project_gitlab_id)
-    opts = {
-      access_token: self.access_token,
-    }
-
     Rails.cache.fetch(cache_key("project_info", project_gitlab_id, sync_at)) do
-      Network.new.project(opts, project_gitlab_id)
+      Network.new.project(authenticate_options, project_gitlab_id)
     end
   end
 end
