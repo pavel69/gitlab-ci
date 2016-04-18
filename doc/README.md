@@ -14,6 +14,7 @@
 
 + [Test and deploy Ruby applications to Heroku](examples/test-and-deploy-ruby-application-to-heroku.md)
 + [Test and deploy Python applications to Heroku](examples/test-and-deploy-python-application-to-heroku.md)
++ [Test Clojure applications](examples/test-clojure-application.md)
 + Help your favorite programming language and GitLab by sending a merge request with a guide for that language.
 
 ### Administrator documentation
@@ -24,3 +25,6 @@
 + [Backup/Restore](raketasks/backup_restore.md)
 + [Migrating to packaged CI](migration_to_omnibus/README.md)
 + [API](api/README.md)
+
+### Note
+To use GitLab CI with GitHub or others, you should mirror your repository to GitLab or move it there.
